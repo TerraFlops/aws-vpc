@@ -24,7 +24,7 @@ resources:
         * Public Subnet 2A (10.0.10.0/24)
             * EC2 NAT Instance + EIP
             * Default Route -> Internet Gateway
-        * Compute Subnet 2A (10.0.20.0/24)
+        * Application Subnet 2A (10.0.20.0/24)
             * Default Route -> EC2 Nat Instance
         * Data Subnet 2A (10.0.30.0/24)
             * Default Route -> EC2 Nat Instance
@@ -32,7 +32,7 @@ resources:
         * Public Subnet 2B (10.0.11.0/24)
             * EC2 NAT Instance + EIP
             * Default Route -> Internet Gateway
-        * Compute Subnet 2B (10.0.21.0/24)
+        * Application Subnet 2B (10.0.21.0/24)
             * Default Route -> EC2 Nat Instance
         * Data Subnet 2B (10.0.31.0/24)
             * Default Route -> EC2 Nat Instance
@@ -42,17 +42,16 @@ resources:
 Note: This is by no means an example of best practices- and should be treated purely as an example
 of using this Terraform module.
 
-## Example Usage
+## Example Output
+
+The following is an example of the Terraform output of this example.
+
+### Terraform Init
 
 ```hcl-terraform
 $ tf init
-
+    
     Initializing modules...
-    Downloading git::https://github.com/TerraFlops/aws-vpc.git for vpc...
-    - vpc in .terraform/modules/vpc
-    - vpc.security_group_rules in .terraform/modules/vpc/modules/security_group_rules
-    - vpc.security_groups in .terraform/modules/vpc/modules/security_groups
-    - vpc.subnets in .terraform/modules/vpc/modules/subnets
     
     Initializing the backend...
     
@@ -77,7 +76,11 @@ $ tf init
     If you ever set or change modules or backend configuration for Terraform,
     rerun this command to reinitialize your working directory. If you forget, other
     commands will detect it and remind you to do so if necessary.
+```
 
+### Terraform Plan
+
+```
 $ tf plan
 
     Refreshing Terraform state in-memory prior to plan...
@@ -186,12 +189,12 @@ $ tf plan
           + vpc_id      = (known after apply)
         }
     
-      # module.vpc.module.security_group_rules.aws_security_group_rule.cidr_block["application_inbound_from_anywhere_ports_all_protocol_all"] will be created
+      # module.vpc.module.security_group_rules.aws_security_group_rule.cidr_block["application_inbound_from_application_subnet_2a_ports_all_protocol_all"] will be created
       + resource "aws_security_group_rule" "cidr_block" {
           + cidr_blocks              = [
-              + "0.0.0.0/0",
+              + "10.0.20.0/24",
             ]
-          + description              = "Inbound from Anywhere (ALL)"
+          + description              = "Inbound from Application Subnet 2A (ALL)"
           + from_port                = 0
           + id                       = (known after apply)
           + protocol                 = "-1"
@@ -202,12 +205,12 @@ $ tf plan
           + type                     = "ingress"
         }
     
-      # module.vpc.module.security_group_rules.aws_security_group_rule.cidr_block["application_outbound_to_anywhere_ports_all_protocol_all"] will be created
+      # module.vpc.module.security_group_rules.aws_security_group_rule.cidr_block["application_inbound_from_application_subnet_2b_ports_all_protocol_all"] will be created
       + resource "aws_security_group_rule" "cidr_block" {
           + cidr_blocks              = [
-              + "0.0.0.0/0",
+              + "10.0.21.0/24",
             ]
-          + description              = "Outbound to Anywhere (ALL)"
+          + description              = "Inbound from Application Subnet 2B (ALL)"
           + from_port                = 0
           + id                       = (known after apply)
           + protocol                 = "-1"
@@ -215,31 +218,47 @@ $ tf plan
           + self                     = false
           + source_security_group_id = (known after apply)
           + to_port                  = 0
-          + type                     = "egress"
+          + type                     = "ingress"
         }
     
-      # module.vpc.module.security_group_rules.aws_security_group_rule.cidr_block["application_outbound_to_public_subnet_2a_ports_all_protocol_all"] will be created
-      + resource "aws_security_group_rule" "cidr_block" {
-          + cidr_blocks              = [
-              + "10.0.10.0/24",
-            ]
-          + description              = "Outbound to Public Subnet 2A (ALL)"
-          + from_port                = 0
-          + id                       = (known after apply)
-          + protocol                 = "-1"
-          + security_group_id        = (known after apply)
-          + self                     = false
-          + source_security_group_id = (known after apply)
-          + to_port                  = 0
-          + type                     = "egress"
-        }
-    
-      # module.vpc.module.security_group_rules.aws_security_group_rule.cidr_block["database_inbound_from_example_terraflops_vpc_ports_3306_protocol_tcp"] will be created
+      # module.vpc.module.security_group_rules.aws_security_group_rule.cidr_block["application_outbound_to_example_terraflops_vpc_ports_all_protocol_all"] will be created
       + resource "aws_security_group_rule" "cidr_block" {
           + cidr_blocks              = [
               + "10.0.0.0/18",
             ]
-          + description              = "Inbound from Example Terraflops VPC (TCP)"
+          + description              = "Outbound to Example Terraflops VPC (ALL)"
+          + from_port                = 0
+          + id                       = (known after apply)
+          + protocol                 = "-1"
+          + security_group_id        = (known after apply)
+          + self                     = false
+          + source_security_group_id = (known after apply)
+          + to_port                  = 0
+          + type                     = "egress"
+        }
+    
+      # module.vpc.module.security_group_rules.aws_security_group_rule.cidr_block["database_inbound_from_application_subnet_2a_ports_3306_protocol_tcp"] will be created
+      + resource "aws_security_group_rule" "cidr_block" {
+          + cidr_blocks              = [
+              + "10.0.20.0/24",
+            ]
+          + description              = "Inbound from Application Subnet 2A (TCP)"
+          + from_port                = 3306
+          + id                       = (known after apply)
+          + protocol                 = "tcp"
+          + security_group_id        = (known after apply)
+          + self                     = false
+          + source_security_group_id = (known after apply)
+          + to_port                  = 3306
+          + type                     = "ingress"
+        }
+    
+      # module.vpc.module.security_group_rules.aws_security_group_rule.cidr_block["database_inbound_from_application_subnet_2b_ports_3306_protocol_tcp"] will be created
+      + resource "aws_security_group_rule" "cidr_block" {
+          + cidr_blocks              = [
+              + "10.0.21.0/24",
+            ]
+          + description              = "Inbound from Application Subnet 2B (TCP)"
           + from_port                = 3306
           + id                       = (known after apply)
           + protocol                 = "tcp"
@@ -341,28 +360,28 @@ $ tf plan
           + vpc_id                 = (known after apply)
         }
     
-      # module.vpc.module.subnets.aws_route_table.private_subnets["compute_subnet_2a"] will be created
+      # module.vpc.module.subnets.aws_route_table.private_subnets["application_subnet_2a"] will be created
       + resource "aws_route_table" "private_subnets" {
           + id               = (known after apply)
           + owner_id         = (known after apply)
           + propagating_vgws = (known after apply)
           + route            = (known after apply)
           + tags             = {
-              + "Name"       = "ComputeSubnet2a"
-              + "SubnetType" = "Compute"
+              + "Name"       = "ApplicationSubnet2a"
+              + "SubnetType" = "Application"
             }
           + vpc_id           = (known after apply)
         }
     
-      # module.vpc.module.subnets.aws_route_table.private_subnets["compute_subnet_2b"] will be created
+      # module.vpc.module.subnets.aws_route_table.private_subnets["application_subnet_2b"] will be created
       + resource "aws_route_table" "private_subnets" {
           + id               = (known after apply)
           + owner_id         = (known after apply)
           + propagating_vgws = (known after apply)
           + route            = (known after apply)
           + tags             = {
-              + "Name"       = "ComputeSubnet2b"
-              + "SubnetType" = "Compute"
+              + "Name"       = "ApplicationSubnet2b"
+              + "SubnetType" = "Application"
             }
           + vpc_id           = (known after apply)
         }
@@ -419,14 +438,14 @@ $ tf plan
           + vpc_id           = (known after apply)
         }
     
-      # module.vpc.module.subnets.aws_route_table_association.private_subnets["compute_subnet_2a"] will be created
+      # module.vpc.module.subnets.aws_route_table_association.private_subnets["application_subnet_2a"] will be created
       + resource "aws_route_table_association" "private_subnets" {
           + id             = (known after apply)
           + route_table_id = (known after apply)
           + subnet_id      = (known after apply)
         }
     
-      # module.vpc.module.subnets.aws_route_table_association.private_subnets["compute_subnet_2b"] will be created
+      # module.vpc.module.subnets.aws_route_table_association.private_subnets["application_subnet_2b"] will be created
       + resource "aws_route_table_association" "private_subnets" {
           + id             = (known after apply)
           + route_table_id = (known after apply)
@@ -461,7 +480,7 @@ $ tf plan
           + subnet_id      = (known after apply)
         }
     
-      # module.vpc.module.subnets.aws_subnet.private_subnets["compute_subnet_2a"] will be created
+      # module.vpc.module.subnets.aws_subnet.private_subnets["application_subnet_2a"] will be created
       + resource "aws_subnet" "private_subnets" {
           + arn                             = (known after apply)
           + assign_ipv6_address_on_creation = false
@@ -474,14 +493,14 @@ $ tf plan
           + map_public_ip_on_launch         = false
           + owner_id                        = (known after apply)
           + tags                            = {
-              + "Name"       = "ComputeSubnet2a"
+              + "Name"       = "ApplicationSubnet2a"
               + "Public"     = "False"
-              + "SubnetType" = "Compute"
+              + "SubnetType" = "Application"
             }
           + vpc_id                          = (known after apply)
         }
     
-      # module.vpc.module.subnets.aws_subnet.private_subnets["compute_subnet_2b"] will be created
+      # module.vpc.module.subnets.aws_subnet.private_subnets["application_subnet_2b"] will be created
       + resource "aws_subnet" "private_subnets" {
           + arn                             = (known after apply)
           + assign_ipv6_address_on_creation = false
@@ -494,9 +513,9 @@ $ tf plan
           + map_public_ip_on_launch         = false
           + owner_id                        = (known after apply)
           + tags                            = {
-              + "Name"       = "ComputeSubnet2b"
+              + "Name"       = "ApplicationSubnet2b"
               + "Public"     = "False"
-              + "SubnetType" = "Compute"
+              + "SubnetType" = "Application"
             }
           + vpc_id                          = (known after apply)
         }
@@ -581,17 +600,20 @@ $ tf plan
           + vpc_id                          = (known after apply)
         }
     
-    Plan: 31 to add, 0 to change, 0 to destroy.
+    Plan: 32 to add, 0 to change, 0 to destroy.
     
     ------------------------------------------------------------------------
     
     Note: You didn't specify an "-out" parameter to save this plan, so Terraform
     can't guarantee that exactly these actions will be performed if
     "terraform apply" is subsequently run.
+```
 
+### Terraform Apply
 
+```
 $ tf apply
-
+    
     An execution plan has been generated and is shown below.
     Resource actions are indicated with the following symbols:
       + create
@@ -691,12 +713,12 @@ $ tf apply
           + vpc_id      = (known after apply)
         }
     
-      # module.vpc.module.security_group_rules.aws_security_group_rule.cidr_block["application_inbound_from_anywhere_ports_all_protocol_all"] will be created
+      # module.vpc.module.security_group_rules.aws_security_group_rule.cidr_block["application_inbound_from_application_subnet_2a_ports_all_protocol_all"] will be created
       + resource "aws_security_group_rule" "cidr_block" {
           + cidr_blocks              = [
-              + "0.0.0.0/0",
+              + "10.0.20.0/24",
             ]
-          + description              = "Inbound from Anywhere (ALL)"
+          + description              = "Inbound from Application Subnet 2A (ALL)"
           + from_port                = 0
           + id                       = (known after apply)
           + protocol                 = "-1"
@@ -707,12 +729,12 @@ $ tf apply
           + type                     = "ingress"
         }
     
-      # module.vpc.module.security_group_rules.aws_security_group_rule.cidr_block["application_outbound_to_anywhere_ports_all_protocol_all"] will be created
+      # module.vpc.module.security_group_rules.aws_security_group_rule.cidr_block["application_inbound_from_application_subnet_2b_ports_all_protocol_all"] will be created
       + resource "aws_security_group_rule" "cidr_block" {
           + cidr_blocks              = [
-              + "0.0.0.0/0",
+              + "10.0.21.0/24",
             ]
-          + description              = "Outbound to Anywhere (ALL)"
+          + description              = "Inbound from Application Subnet 2B (ALL)"
           + from_port                = 0
           + id                       = (known after apply)
           + protocol                 = "-1"
@@ -720,31 +742,47 @@ $ tf apply
           + self                     = false
           + source_security_group_id = (known after apply)
           + to_port                  = 0
-          + type                     = "egress"
+          + type                     = "ingress"
         }
     
-      # module.vpc.module.security_group_rules.aws_security_group_rule.cidr_block["application_outbound_to_public_subnet_2a_ports_all_protocol_all"] will be created
-      + resource "aws_security_group_rule" "cidr_block" {
-          + cidr_blocks              = [
-              + "10.0.10.0/24",
-            ]
-          + description              = "Outbound to Public Subnet 2A (ALL)"
-          + from_port                = 0
-          + id                       = (known after apply)
-          + protocol                 = "-1"
-          + security_group_id        = (known after apply)
-          + self                     = false
-          + source_security_group_id = (known after apply)
-          + to_port                  = 0
-          + type                     = "egress"
-        }
-    
-      # module.vpc.module.security_group_rules.aws_security_group_rule.cidr_block["database_inbound_from_example_terraflops_vpc_ports_3306_protocol_tcp"] will be created
+      # module.vpc.module.security_group_rules.aws_security_group_rule.cidr_block["application_outbound_to_example_terraflops_vpc_ports_all_protocol_all"] will be created
       + resource "aws_security_group_rule" "cidr_block" {
           + cidr_blocks              = [
               + "10.0.0.0/18",
             ]
-          + description              = "Inbound from Example Terraflops VPC (TCP)"
+          + description              = "Outbound to Example Terraflops VPC (ALL)"
+          + from_port                = 0
+          + id                       = (known after apply)
+          + protocol                 = "-1"
+          + security_group_id        = (known after apply)
+          + self                     = false
+          + source_security_group_id = (known after apply)
+          + to_port                  = 0
+          + type                     = "egress"
+        }
+    
+      # module.vpc.module.security_group_rules.aws_security_group_rule.cidr_block["database_inbound_from_application_subnet_2a_ports_3306_protocol_tcp"] will be created
+      + resource "aws_security_group_rule" "cidr_block" {
+          + cidr_blocks              = [
+              + "10.0.20.0/24",
+            ]
+          + description              = "Inbound from Application Subnet 2A (TCP)"
+          + from_port                = 3306
+          + id                       = (known after apply)
+          + protocol                 = "tcp"
+          + security_group_id        = (known after apply)
+          + self                     = false
+          + source_security_group_id = (known after apply)
+          + to_port                  = 3306
+          + type                     = "ingress"
+        }
+    
+      # module.vpc.module.security_group_rules.aws_security_group_rule.cidr_block["database_inbound_from_application_subnet_2b_ports_3306_protocol_tcp"] will be created
+      + resource "aws_security_group_rule" "cidr_block" {
+          + cidr_blocks              = [
+              + "10.0.21.0/24",
+            ]
+          + description              = "Inbound from Application Subnet 2B (TCP)"
           + from_port                = 3306
           + id                       = (known after apply)
           + protocol                 = "tcp"
@@ -846,28 +884,28 @@ $ tf apply
           + vpc_id                 = (known after apply)
         }
     
-      # module.vpc.module.subnets.aws_route_table.private_subnets["compute_subnet_2a"] will be created
+      # module.vpc.module.subnets.aws_route_table.private_subnets["application_subnet_2a"] will be created
       + resource "aws_route_table" "private_subnets" {
           + id               = (known after apply)
           + owner_id         = (known after apply)
           + propagating_vgws = (known after apply)
           + route            = (known after apply)
           + tags             = {
-              + "Name"       = "ComputeSubnet2a"
-              + "SubnetType" = "Compute"
+              + "Name"       = "ApplicationSubnet2a"
+              + "SubnetType" = "Application"
             }
           + vpc_id           = (known after apply)
         }
     
-      # module.vpc.module.subnets.aws_route_table.private_subnets["compute_subnet_2b"] will be created
+      # module.vpc.module.subnets.aws_route_table.private_subnets["application_subnet_2b"] will be created
       + resource "aws_route_table" "private_subnets" {
           + id               = (known after apply)
           + owner_id         = (known after apply)
           + propagating_vgws = (known after apply)
           + route            = (known after apply)
           + tags             = {
-              + "Name"       = "ComputeSubnet2b"
-              + "SubnetType" = "Compute"
+              + "Name"       = "ApplicationSubnet2b"
+              + "SubnetType" = "Application"
             }
           + vpc_id           = (known after apply)
         }
@@ -924,14 +962,14 @@ $ tf apply
           + vpc_id           = (known after apply)
         }
     
-      # module.vpc.module.subnets.aws_route_table_association.private_subnets["compute_subnet_2a"] will be created
+      # module.vpc.module.subnets.aws_route_table_association.private_subnets["application_subnet_2a"] will be created
       + resource "aws_route_table_association" "private_subnets" {
           + id             = (known after apply)
           + route_table_id = (known after apply)
           + subnet_id      = (known after apply)
         }
     
-      # module.vpc.module.subnets.aws_route_table_association.private_subnets["compute_subnet_2b"] will be created
+      # module.vpc.module.subnets.aws_route_table_association.private_subnets["application_subnet_2b"] will be created
       + resource "aws_route_table_association" "private_subnets" {
           + id             = (known after apply)
           + route_table_id = (known after apply)
@@ -966,7 +1004,7 @@ $ tf apply
           + subnet_id      = (known after apply)
         }
     
-      # module.vpc.module.subnets.aws_subnet.private_subnets["compute_subnet_2a"] will be created
+      # module.vpc.module.subnets.aws_subnet.private_subnets["application_subnet_2a"] will be created
       + resource "aws_subnet" "private_subnets" {
           + arn                             = (known after apply)
           + assign_ipv6_address_on_creation = false
@@ -979,14 +1017,14 @@ $ tf apply
           + map_public_ip_on_launch         = false
           + owner_id                        = (known after apply)
           + tags                            = {
-              + "Name"       = "ComputeSubnet2a"
+              + "Name"       = "ApplicationSubnet2a"
               + "Public"     = "False"
-              + "SubnetType" = "Compute"
+              + "SubnetType" = "Application"
             }
           + vpc_id                          = (known after apply)
         }
     
-      # module.vpc.module.subnets.aws_subnet.private_subnets["compute_subnet_2b"] will be created
+      # module.vpc.module.subnets.aws_subnet.private_subnets["application_subnet_2b"] will be created
       + resource "aws_subnet" "private_subnets" {
           + arn                             = (known after apply)
           + assign_ipv6_address_on_creation = false
@@ -999,9 +1037,9 @@ $ tf apply
           + map_public_ip_on_launch         = false
           + owner_id                        = (known after apply)
           + tags                            = {
-              + "Name"       = "ComputeSubnet2b"
+              + "Name"       = "ApplicationSubnet2b"
               + "Public"     = "False"
-              + "SubnetType" = "Compute"
+              + "SubnetType" = "Application"
             }
           + vpc_id                          = (known after apply)
         }
@@ -1086,7 +1124,7 @@ $ tf apply
           + vpc_id                          = (known after apply)
         }
     
-    Plan: 31 to add, 0 to change, 0 to destroy.
+    Plan: 32 to add, 0 to change, 0 to destroy.
     
     Do you want to perform these actions?
       Terraform will perform the actions described above.
@@ -1095,73 +1133,769 @@ $ tf apply
       Enter a value: yes
     
     module.vpc.aws_vpc.vpc: Creating...
-    module.vpc.aws_vpc.vpc: Creation complete after 3s [id=vpc-0086057259f3bfdbc]
-    module.vpc.module.security_groups.data.aws_vpc.vpc: Reading...
+    module.vpc.aws_vpc.vpc: Creation complete after 3s [id=vpc-098a7043eb96099c2]
     module.vpc.aws_internet_gateway.internet_gateway[0]: Creating...
     module.vpc.module.subnets.aws_route_table.private_subnets["data_subnet_2b"]: Creating...
-    module.vpc.module.subnets.aws_subnet.private_subnets["compute_subnet_2b"]: Creating...
-    module.vpc.module.subnets.aws_route_table.private_subnets["data_subnet_2a"]: Creating...
-    module.vpc.module.subnets.aws_route_table.public_subnets["public_subnet_2b"]: Creating...
-    module.vpc.module.subnets.aws_route_table.public_subnets["public_subnet_2a"]: Creating...
-    module.vpc.module.subnets.aws_subnet.private_subnets["compute_subnet_2a"]: Creating...
-    module.vpc.module.subnets.aws_subnet.public_subnets["public_subnet_2b"]: Creating...
-    module.vpc.module.subnets.aws_subnet.private_subnets["data_subnet_2b"]: Creating...
-    module.vpc.module.subnets.aws_route_table.public_subnets["public_subnet_2b"]: Creation complete after 0s [id=rtb-0dcafc69a5a2de072]
-    module.vpc.module.subnets.aws_route_table.private_subnets["compute_subnet_2b"]: Creating...
-    module.vpc.module.security_groups.data.aws_vpc.vpc: Read complete after 1s [id=vpc-0086057259f3bfdbc]
-    module.vpc.module.subnets.aws_subnet.public_subnets["public_subnet_2a"]: Creating...
-    module.vpc.module.subnets.aws_route_table.private_subnets["data_subnet_2a"]: Creation complete after 1s [id=rtb-01eeee938f5edfa34]
-    module.vpc.module.subnets.aws_route_table.private_subnets["compute_subnet_2a"]: Creating...
-    module.vpc.module.subnets.aws_route_table.private_subnets["data_subnet_2b"]: Creation complete after 1s [id=rtb-00c0850d74f05cadc]
+    module.vpc.module.subnets.aws_subnet.private_subnets["application_subnet_2a"]: Creating...
     module.vpc.module.subnets.aws_subnet.private_subnets["data_subnet_2a"]: Creating...
-    module.vpc.module.subnets.aws_route_table.public_subnets["public_subnet_2a"]: Creation complete after 1s [id=rtb-03060080418ab29b9]
-    module.vpc.module.security_groups.aws_security_group.security_groups["nat_instance"]: Creating...
-    module.vpc.module.subnets.aws_subnet.public_subnets["public_subnet_2b"]: Creation complete after 1s [id=subnet-0a0d70daf30957688]
-    module.vpc.module.security_groups.aws_security_group.security_groups["database"]: Creating...
-    module.vpc.module.subnets.aws_subnet.private_subnets["compute_subnet_2a"]: Creation complete after 1s [id=subnet-0c8dcf65ee658db04]
-    module.vpc.module.security_groups.aws_security_group.security_groups["application"]: Creating...
-    module.vpc.module.subnets.aws_subnet.private_subnets["compute_subnet_2b"]: Creation complete after 1s [id=subnet-006cd430434a8a86c]
-    module.vpc.aws_internet_gateway.internet_gateway[0]: Creation complete after 1s [id=igw-0bcf7af1e852a9679]
-    module.vpc.module.subnets.aws_subnet.private_subnets["data_subnet_2b"]: Creation complete after 1s [id=subnet-0dbb2309af36325f6]
-    module.vpc.module.subnets.aws_route_table.private_subnets["compute_subnet_2b"]: Creation complete after 0s [id=rtb-02659359f8bbe0d5f]
-    module.vpc.module.subnets.aws_route_table.private_subnets["compute_subnet_2a"]: Creation complete after 0s [id=rtb-0e1de42f4eb4c9b4c]
-    module.vpc.module.subnets.aws_subnet.private_subnets["data_subnet_2a"]: Creation complete after 1s [id=subnet-01deaec449ab2357b]
-    module.vpc.module.subnets.aws_route_table_association.private_subnets["data_subnet_2a"]: Creating...
-    module.vpc.module.subnets.aws_route_table_association.private_subnets["data_subnet_2b"]: Creating...
-    module.vpc.module.subnets.aws_route_table_association.private_subnets["compute_subnet_2a"]: Creating...
-    module.vpc.module.subnets.aws_route_table_association.private_subnets["compute_subnet_2b"]: Creating...
-    module.vpc.module.subnets.aws_subnet.public_subnets["public_subnet_2a"]: Creation complete after 1s [id=subnet-0c0d83ec6342ca0f4]
+    module.vpc.module.subnets.aws_route_table.public_subnets["public_subnet_2a"]: Creating...
+    module.vpc.module.subnets.aws_route_table.private_subnets["application_subnet_2b"]: Creating...
+    module.vpc.module.subnets.aws_subnet.private_subnets["data_subnet_2b"]: Creating...
+    module.vpc.module.subnets.aws_subnet.public_subnets["public_subnet_2a"]: Creating...
+    module.vpc.module.subnets.aws_subnet.public_subnets["public_subnet_2b"]: Creating...
+    module.vpc.module.subnets.aws_route_table.private_subnets["application_subnet_2a"]: Creating...
+    module.vpc.module.subnets.aws_route_table.private_subnets["application_subnet_2a"]: Creation complete after 0s [id=rtb-0f80d791424dcc258]
+    module.vpc.module.security_groups.data.aws_vpc.vpc: Reading...
+    module.vpc.module.subnets.aws_route_table.public_subnets["public_subnet_2a"]: Creation complete after 0s [id=rtb-046aa1f1875a53c1e]
+    module.vpc.module.subnets.aws_route_table.public_subnets["public_subnet_2b"]: Creating...
+    module.vpc.module.subnets.aws_route_table.private_subnets["application_subnet_2b"]: Creation complete after 1s [id=rtb-06f355a18e087c6b7]
+    module.vpc.module.subnets.aws_subnet.private_subnets["application_subnet_2b"]: Creating...
+    module.vpc.module.subnets.aws_route_table.private_subnets["data_subnet_2b"]: Creation complete after 1s [id=rtb-04f72acc20f5c439b]
+    module.vpc.module.subnets.aws_route_table.private_subnets["data_subnet_2a"]: Creating...
+    module.vpc.aws_internet_gateway.internet_gateway[0]: Creation complete after 1s [id=igw-0fe7828b034e508ef]
+    module.vpc.module.subnets.aws_subnet.private_subnets["application_subnet_2a"]: Creation complete after 1s [id=subnet-0b4e09132796444de]
+    module.vpc.module.subnets.aws_subnet.private_subnets["data_subnet_2b"]: Creation complete after 1s [id=subnet-062991b486a30d25c]
+    module.vpc.module.subnets.aws_subnet.public_subnets["public_subnet_2a"]: Creation complete after 1s [id=subnet-02a5a54025a2415e5]
+    module.vpc.module.subnets.aws_subnet.public_subnets["public_subnet_2b"]: Creation complete after 1s [id=subnet-002e0dd781e157c42]
+    module.vpc.module.subnets.aws_subnet.private_subnets["data_subnet_2a"]: Creation complete after 1s [id=subnet-005e6faf52715f4b6]
+    module.vpc.module.subnets.aws_route_table.public_subnets["public_subnet_2b"]: Creation complete after 0s [id=rtb-01dbf6a650453a9e8]
     module.vpc.module.subnets.aws_route_table_association.public_subnets["public_subnet_2a"]: Creating...
     module.vpc.module.subnets.aws_route_table_association.public_subnets["public_subnet_2b"]: Creating...
-    module.vpc.aws_route.route_internet_gateway["public_subnet_2b"]: Creating...
-    module.vpc.module.subnets.aws_route_table_association.private_subnets["data_subnet_2a"]: Creation complete after 0s [id=rtbassoc-0ac711b27f79f6b67]
     module.vpc.aws_route.route_internet_gateway["public_subnet_2a"]: Creating...
-    module.vpc.module.subnets.aws_route_table_association.private_subnets["compute_subnet_2a"]: Creation complete after 0s [id=rtbassoc-05b9e1c2099153171]
-    module.vpc.module.subnets.aws_route_table_association.private_subnets["data_subnet_2b"]: Creation complete after 0s [id=rtbassoc-00d4d60aab23b66c7]
-    module.vpc.module.subnets.aws_route_table_association.public_subnets["public_subnet_2a"]: Creation complete after 0s [id=rtbassoc-092a8a33ac6106dc5]
-    module.vpc.module.subnets.aws_route_table_association.public_subnets["public_subnet_2b"]: Creation complete after 0s [id=rtbassoc-07b4320c25813bd1f]
-    module.vpc.module.subnets.aws_route_table_association.private_subnets["compute_subnet_2b"]: Creation complete after 0s [id=rtbassoc-0ce1f975e9caea115]
-    module.vpc.aws_route.route_internet_gateway["public_subnet_2b"]: Creation complete after 0s [id=r-rtb-0dcafc69a5a2de0721080289494]
-    module.vpc.aws_route.route_internet_gateway["public_subnet_2a"]: Creation complete after 0s [id=r-rtb-03060080418ab29b91080289494]
-    module.vpc.module.security_groups.aws_security_group.security_groups["database"]: Creation complete after 2s [id=sg-0f78cb71c705522e4]
-    module.vpc.module.security_groups.aws_security_group.security_groups["application"]: Creation complete after 2s [id=sg-0d0d4461148c49cc5]
-    module.vpc.module.security_groups.aws_security_group.security_groups["nat_instance"]: Creation complete after 2s [id=sg-020e3af63be71f6bb]
+    module.vpc.aws_route.route_internet_gateway["public_subnet_2b"]: Creating...
+    module.vpc.module.security_groups.data.aws_vpc.vpc: Read complete after 1s [id=vpc-098a7043eb96099c2]
+    module.vpc.module.security_groups.aws_security_group.security_groups["nat_instance"]: Creating...
+    module.vpc.module.security_groups.aws_security_group.security_groups["database"]: Creating...
+    module.vpc.module.security_groups.aws_security_group.security_groups["application"]: Creating...
+    module.vpc.module.subnets.aws_route_table.private_subnets["data_subnet_2a"]: Creation complete after 1s [id=rtb-0e4b2a36e36d121a0]
+    module.vpc.module.subnets.aws_subnet.private_subnets["application_subnet_2b"]: Creation complete after 1s [id=subnet-0f7c56595d385f9ae]
+    module.vpc.module.subnets.aws_route_table_association.private_subnets["application_subnet_2b"]: Creating...
+    module.vpc.module.subnets.aws_route_table_association.private_subnets["application_subnet_2a"]: Creating...
+    module.vpc.module.subnets.aws_route_table_association.private_subnets["data_subnet_2b"]: Creating...
+    module.vpc.module.subnets.aws_route_table_association.public_subnets["public_subnet_2b"]: Creation complete after 1s [id=rtbassoc-07fab10e6232e36e2]
+    module.vpc.module.subnets.aws_route_table_association.public_subnets["public_subnet_2a"]: Creation complete after 1s [id=rtbassoc-046030d0adb100c86]
+    module.vpc.module.subnets.aws_route_table_association.private_subnets["data_subnet_2a"]: Creating...
+    module.vpc.module.subnets.aws_route_table_association.private_subnets["application_subnet_2b"]: Creation complete after 0s [id=rtbassoc-0b335507c3a44d554]
+    module.vpc.module.subnets.aws_route_table_association.private_subnets["application_subnet_2a"]: Creation complete after 0s [id=rtbassoc-01d243371b4a7bd60]
+    module.vpc.module.subnets.aws_route_table_association.private_subnets["data_subnet_2b"]: Creation complete after 0s [id=rtbassoc-08c74aaa6314e9ce8]
+    module.vpc.module.subnets.aws_route_table_association.private_subnets["data_subnet_2a"]: Creation complete after 0s [id=rtbassoc-07ef02d64eed9c92e]
+    module.vpc.aws_route.route_internet_gateway["public_subnet_2b"]: Creation complete after 1s [id=r-rtb-01dbf6a650453a9e81080289494]
+    module.vpc.aws_route.route_internet_gateway["public_subnet_2a"]: Creation complete after 1s [id=r-rtb-046aa1f1875a53c1e1080289494]
+    module.vpc.module.security_groups.aws_security_group.security_groups["application"]: Creation complete after 2s [id=sg-08b792f4397f1996c]
+    module.vpc.module.security_groups.aws_security_group.security_groups["database"]: Creation complete after 2s [id=sg-04b61adc792fcc73e]
+    module.vpc.module.security_groups.aws_security_group.security_groups["nat_instance"]: Creation complete after 2s [id=sg-08414b897bae19ab1]
     module.vpc.module.security_group_rules.data.aws_security_group.security_group_rules["application"]: Reading...
     module.vpc.module.security_group_rules.data.aws_security_group.security_group_rules["database"]: Reading...
-    module.vpc.module.security_group_rules.data.aws_security_group.security_group_rules["application"]: Read complete after 0s [id=sg-0d0d4461148c49cc5]
-    module.vpc.module.security_group_rules.data.aws_security_group.security_group_rules["database"]: Read complete after 0s [id=sg-0f78cb71c705522e4]
+    module.vpc.module.security_group_rules.data.aws_security_group.security_group_rules["database"]: Read complete after 1s [id=sg-04b61adc792fcc73e]
+    module.vpc.module.security_group_rules.data.aws_security_group.security_group_rules["application"]: Read complete after 1s [id=sg-08b792f4397f1996c]
     module.vpc.module.security_group_rules.aws_security_group_rule.security_group["application_inbound_from_database_ports_3306_protocol_tcp"]: Creating...
-    module.vpc.module.security_group_rules.aws_security_group_rule.cidr_block["application_outbound_to_anywhere_ports_all_protocol_all"]: Creating...
+    module.vpc.module.security_group_rules.aws_security_group_rule.cidr_block["database_inbound_from_application_subnet_2a_ports_3306_protocol_tcp"]: Creating...
+    module.vpc.module.security_group_rules.aws_security_group_rule.cidr_block["application_inbound_from_application_subnet_2b_ports_all_protocol_all"]: Creating...
+    module.vpc.module.security_group_rules.aws_security_group_rule.cidr_block["application_inbound_from_application_subnet_2a_ports_all_protocol_all"]: Creating...
+    module.vpc.module.security_group_rules.aws_security_group_rule.cidr_block["application_outbound_to_example_terraflops_vpc_ports_all_protocol_all"]: Creating...
     module.vpc.module.security_group_rules.aws_security_group_rule.cidr_block["database_outbound_to_anywhere_ports_all_protocol_all"]: Creating...
-    module.vpc.module.security_group_rules.aws_security_group_rule.cidr_block["application_inbound_from_anywhere_ports_all_protocol_all"]: Creating...
-    module.vpc.module.security_group_rules.aws_security_group_rule.cidr_block["application_outbound_to_public_subnet_2a_ports_all_protocol_all"]: Creating...
-    module.vpc.module.security_group_rules.aws_security_group_rule.cidr_block["database_inbound_from_example_terraflops_vpc_ports_3306_protocol_tcp"]: Creating...
-    module.vpc.module.security_group_rules.aws_security_group_rule.cidr_block["database_outbound_to_anywhere_ports_all_protocol_all"]: Creation complete after 0s [id=sgrule-3833797959]
-    module.vpc.module.security_group_rules.aws_security_group_rule.security_group["application_inbound_from_database_ports_3306_protocol_tcp"]: Creation complete after 0s [id=sgrule-1107615453]
-    module.vpc.module.security_group_rules.aws_security_group_rule.cidr_block["application_outbound_to_anywhere_ports_all_protocol_all"]: Creation complete after 1s [id=sgrule-2889924155]
-    module.vpc.module.security_group_rules.aws_security_group_rule.cidr_block["database_inbound_from_example_terraflops_vpc_ports_3306_protocol_tcp"]: Creation complete after 1s [id=sgrule-1369931668]
-    module.vpc.module.security_group_rules.aws_security_group_rule.cidr_block["application_inbound_from_anywhere_ports_all_protocol_all"]: Creation complete after 2s [id=sgrule-866486990]
-    module.vpc.module.security_group_rules.aws_security_group_rule.cidr_block["application_outbound_to_public_subnet_2a_ports_all_protocol_all"]: Creation complete after 2s [id=sgrule-1600886702]
+    module.vpc.module.security_group_rules.aws_security_group_rule.cidr_block["database_inbound_from_application_subnet_2b_ports_3306_protocol_tcp"]: Creating...
+    module.vpc.module.security_group_rules.aws_security_group_rule.cidr_block["database_inbound_from_application_subnet_2a_ports_3306_protocol_tcp"]: Creation complete after 0s [id=sgrule-1458737608]
+    module.vpc.module.security_group_rules.aws_security_group_rule.security_group["application_inbound_from_database_ports_3306_protocol_tcp"]: Creation complete after 0s [id=sgrule-2346379931]
+    module.vpc.module.security_group_rules.aws_security_group_rule.cidr_block["database_inbound_from_application_subnet_2b_ports_3306_protocol_tcp"]: Creation complete after 1s [id=sgrule-4035287676]
+    module.vpc.module.security_group_rules.aws_security_group_rule.cidr_block["application_inbound_from_application_subnet_2b_ports_all_protocol_all"]: Creation complete after 1s [id=sgrule-3046256305]
+    module.vpc.module.security_group_rules.aws_security_group_rule.cidr_block["application_inbound_from_application_subnet_2a_ports_all_protocol_all"]: Creation complete after 2s [id=sgrule-333784325]
+    module.vpc.module.security_group_rules.aws_security_group_rule.cidr_block["database_outbound_to_anywhere_ports_all_protocol_all"]: Creation complete after 2s [id=sgrule-38873756]
+    module.vpc.module.security_group_rules.aws_security_group_rule.cidr_block["application_outbound_to_example_terraflops_vpc_ports_all_protocol_all"]: Creation complete after 2s [id=sgrule-4031555952]
     
-    Apply complete! Resources: 31 added, 0 changed, 0 destroyed.
+    Apply complete! Resources: 32 added, 0 changed, 0 destroyed.
+```
+
+### Terraform Destroy
+
+```hcl-terraform
+$ tf destroy
+
+    module.vpc.aws_vpc.vpc: Refreshing state... [id=vpc-098a7043eb96099c2]
+    module.vpc.aws_internet_gateway.internet_gateway[0]: Refreshing state... [id=igw-0fe7828b034e508ef]
+    module.vpc.module.security_groups.data.aws_vpc.vpc: Refreshing state... [id=vpc-098a7043eb96099c2]
+    module.vpc.module.subnets.aws_subnet.private_subnets["data_subnet_2b"]: Refreshing state... [id=subnet-062991b486a30d25c]
+    module.vpc.module.subnets.aws_subnet.private_subnets["data_subnet_2a"]: Refreshing state... [id=subnet-005e6faf52715f4b6]
+    module.vpc.module.subnets.aws_subnet.private_subnets["application_subnet_2b"]: Refreshing state... [id=subnet-0f7c56595d385f9ae]
+    module.vpc.module.subnets.aws_subnet.private_subnets["application_subnet_2a"]: Refreshing state... [id=subnet-0b4e09132796444de]
+    module.vpc.module.subnets.aws_subnet.public_subnets["public_subnet_2b"]: Refreshing state... [id=subnet-002e0dd781e157c42]
+    module.vpc.module.subnets.aws_subnet.public_subnets["public_subnet_2a"]: Refreshing state... [id=subnet-02a5a54025a2415e5]
+    module.vpc.module.subnets.aws_route_table.private_subnets["data_subnet_2a"]: Refreshing state... [id=rtb-0e4b2a36e36d121a0]
+    module.vpc.module.subnets.aws_route_table.private_subnets["application_subnet_2a"]: Refreshing state... [id=rtb-0f80d791424dcc258]
+    module.vpc.module.subnets.aws_route_table.private_subnets["data_subnet_2b"]: Refreshing state... [id=rtb-04f72acc20f5c439b]
+    module.vpc.module.subnets.aws_route_table.private_subnets["application_subnet_2b"]: Refreshing state... [id=rtb-06f355a18e087c6b7]
+    module.vpc.module.subnets.aws_route_table.public_subnets["public_subnet_2a"]: Refreshing state... [id=rtb-046aa1f1875a53c1e]
+    module.vpc.module.subnets.aws_route_table.public_subnets["public_subnet_2b"]: Refreshing state... [id=rtb-01dbf6a650453a9e8]
+    module.vpc.module.subnets.aws_route_table_association.public_subnets["public_subnet_2a"]: Refreshing state... [id=rtbassoc-046030d0adb100c86]
+    module.vpc.module.subnets.aws_route_table_association.public_subnets["public_subnet_2b"]: Refreshing state... [id=rtbassoc-07fab10e6232e36e2]
+    module.vpc.aws_route.route_internet_gateway["public_subnet_2a"]: Refreshing state... [id=r-rtb-046aa1f1875a53c1e1080289494]
+    module.vpc.aws_route.route_internet_gateway["public_subnet_2b"]: Refreshing state... [id=r-rtb-01dbf6a650453a9e81080289494]
+    module.vpc.module.subnets.aws_route_table_association.private_subnets["application_subnet_2a"]: Refreshing state... [id=rtbassoc-01d243371b4a7bd60]
+    module.vpc.module.subnets.aws_route_table_association.private_subnets["data_subnet_2a"]: Refreshing state... [id=rtbassoc-07ef02d64eed9c92e]
+    module.vpc.module.subnets.aws_route_table_association.private_subnets["application_subnet_2b"]: Refreshing state... [id=rtbassoc-0b335507c3a44d554]
+    module.vpc.module.subnets.aws_route_table_association.private_subnets["data_subnet_2b"]: Refreshing state... [id=rtbassoc-08c74aaa6314e9ce8]
+    module.vpc.module.security_groups.aws_security_group.security_groups["database"]: Refreshing state... [id=sg-04b61adc792fcc73e]
+    module.vpc.module.security_groups.aws_security_group.security_groups["nat_instance"]: Refreshing state... [id=sg-08414b897bae19ab1]
+    module.vpc.module.security_groups.aws_security_group.security_groups["application"]: Refreshing state... [id=sg-08b792f4397f1996c]
+    module.vpc.module.security_group_rules.data.aws_security_group.security_group_rules["database"]: Refreshing state... [id=sg-04b61adc792fcc73e]
+    module.vpc.module.security_group_rules.data.aws_security_group.security_group_rules["application"]: Refreshing state... [id=sg-08b792f4397f1996c]
+    module.vpc.module.security_group_rules.aws_security_group_rule.security_group["application_inbound_from_database_ports_3306_protocol_tcp"]: Refreshing state... [id=sgrule-2346379931]
+    module.vpc.module.security_group_rules.aws_security_group_rule.cidr_block["database_inbound_from_application_subnet_2a_ports_3306_protocol_tcp"]: Refreshing state... [id=sgrule-1458737608]
+    module.vpc.module.security_group_rules.aws_security_group_rule.cidr_block["database_outbound_to_anywhere_ports_all_protocol_all"]: Refreshing state... [id=sgrule-38873756]
+    module.vpc.module.security_group_rules.aws_security_group_rule.cidr_block["application_outbound_to_example_terraflops_vpc_ports_all_protocol_all"]: Refreshing state... [id=sgrule-4031555952]
+    module.vpc.module.security_group_rules.aws_security_group_rule.cidr_block["application_inbound_from_application_subnet_2a_ports_all_protocol_all"]: Refreshing state... [id=sgrule-333784325]
+    module.vpc.module.security_group_rules.aws_security_group_rule.cidr_block["database_inbound_from_application_subnet_2b_ports_3306_protocol_tcp"]: Refreshing state... [id=sgrule-4035287676]
+    module.vpc.module.security_group_rules.aws_security_group_rule.cidr_block["application_inbound_from_application_subnet_2b_ports_all_protocol_all"]: Refreshing state... [id=sgrule-3046256305]
+    
+    An execution plan has been generated and is shown below.
+    Resource actions are indicated with the following symbols:
+      - destroy
+    
+    Terraform will perform the following actions:
+    
+      # module.vpc.aws_internet_gateway.internet_gateway[0] will be destroyed
+      - resource "aws_internet_gateway" "internet_gateway" {
+          - arn      = "arn:aws:ec2:ap-southeast-2:633144518364:internet-gateway/igw-0fe7828b034e508ef" -> null
+          - id       = "igw-0fe7828b034e508ef" -> null
+          - owner_id = "633144518364" -> null
+          - tags     = {
+              - "Description" = "Internet gateway"
+              - "Name"        = "ExampleInternetGateway"
+            } -> null
+          - vpc_id   = "vpc-098a7043eb96099c2" -> null
+        }
+    
+      # module.vpc.aws_route.route_internet_gateway["public_subnet_2a"] will be destroyed
+      - resource "aws_route" "route_internet_gateway" {
+          - destination_cidr_block = "0.0.0.0/0" -> null
+          - gateway_id             = "igw-0fe7828b034e508ef" -> null
+          - id                     = "r-rtb-046aa1f1875a53c1e1080289494" -> null
+          - origin                 = "CreateRoute" -> null
+          - route_table_id         = "rtb-046aa1f1875a53c1e" -> null
+          - state                  = "active" -> null
+        }
+    
+      # module.vpc.aws_route.route_internet_gateway["public_subnet_2b"] will be destroyed
+      - resource "aws_route" "route_internet_gateway" {
+          - destination_cidr_block = "0.0.0.0/0" -> null
+          - gateway_id             = "igw-0fe7828b034e508ef" -> null
+          - id                     = "r-rtb-01dbf6a650453a9e81080289494" -> null
+          - origin                 = "CreateRoute" -> null
+          - route_table_id         = "rtb-01dbf6a650453a9e8" -> null
+          - state                  = "active" -> null
+        }
+    
+      # module.vpc.aws_vpc.vpc will be destroyed
+      - resource "aws_vpc" "vpc" {
+          - arn                              = "arn:aws:ec2:ap-southeast-2:633144518364:vpc/vpc-098a7043eb96099c2" -> null
+          - assign_generated_ipv6_cidr_block = false -> null
+          - cidr_block                       = "10.0.0.0/18" -> null
+          - default_network_acl_id           = "acl-0cfdc827e0d2f9eef" -> null
+          - default_route_table_id           = "rtb-000c261676ecdb558" -> null
+          - default_security_group_id        = "sg-0fb4ca3c84e70ad5f" -> null
+          - dhcp_options_id                  = "dopt-30276b57" -> null
+          - enable_classiclink               = false -> null
+          - enable_classiclink_dns_support   = false -> null
+          - enable_dns_hostnames             = true -> null
+          - enable_dns_support               = true -> null
+          - id                               = "vpc-098a7043eb96099c2" -> null
+          - instance_tenancy                 = "default" -> null
+          - main_route_table_id              = "rtb-000c261676ecdb558" -> null
+          - owner_id                         = "633144518364" -> null
+          - tags                             = {
+              - "Description" = "Example Terraflops VPC"
+              - "Module"      = "terraflops/aws-vpc"
+              - "Name"        = "Example"
+            } -> null
+        }
+    
+      # module.vpc.module.security_group_rules.aws_security_group_rule.cidr_block["application_inbound_from_application_subnet_2a_ports_all_protocol_all"] will be destroyed
+      - resource "aws_security_group_rule" "cidr_block" {
+          - cidr_blocks       = [
+              - "10.0.20.0/24",
+            ] -> null
+          - description       = "Inbound from Application Subnet 2A (ALL)" -> null
+          - from_port         = 0 -> null
+          - id                = "sgrule-333784325" -> null
+          - ipv6_cidr_blocks  = [] -> null
+          - prefix_list_ids   = [] -> null
+          - protocol          = "-1" -> null
+          - security_group_id = "sg-08b792f4397f1996c" -> null
+          - self              = false -> null
+          - to_port           = 0 -> null
+          - type              = "ingress" -> null
+        }
+    
+      # module.vpc.module.security_group_rules.aws_security_group_rule.cidr_block["application_inbound_from_application_subnet_2b_ports_all_protocol_all"] will be destroyed
+      - resource "aws_security_group_rule" "cidr_block" {
+          - cidr_blocks       = [
+              - "10.0.21.0/24",
+            ] -> null
+          - description       = "Inbound from Application Subnet 2B (ALL)" -> null
+          - from_port         = 0 -> null
+          - id                = "sgrule-3046256305" -> null
+          - ipv6_cidr_blocks  = [] -> null
+          - prefix_list_ids   = [] -> null
+          - protocol          = "-1" -> null
+          - security_group_id = "sg-08b792f4397f1996c" -> null
+          - self              = false -> null
+          - to_port           = 0 -> null
+          - type              = "ingress" -> null
+        }
+    
+      # module.vpc.module.security_group_rules.aws_security_group_rule.cidr_block["application_outbound_to_example_terraflops_vpc_ports_all_protocol_all"] will be destroyed
+      - resource "aws_security_group_rule" "cidr_block" {
+          - cidr_blocks       = [
+              - "10.0.0.0/18",
+            ] -> null
+          - description       = "Outbound to Example Terraflops VPC (ALL)" -> null
+          - from_port         = 0 -> null
+          - id                = "sgrule-4031555952" -> null
+          - ipv6_cidr_blocks  = [] -> null
+          - prefix_list_ids   = [] -> null
+          - protocol          = "-1" -> null
+          - security_group_id = "sg-08b792f4397f1996c" -> null
+          - self              = false -> null
+          - to_port           = 0 -> null
+          - type              = "egress" -> null
+        }
+    
+      # module.vpc.module.security_group_rules.aws_security_group_rule.cidr_block["database_inbound_from_application_subnet_2a_ports_3306_protocol_tcp"] will be destroyed
+      - resource "aws_security_group_rule" "cidr_block" {
+          - cidr_blocks       = [
+              - "10.0.20.0/24",
+            ] -> null
+          - description       = "Inbound from Application Subnet 2A (TCP)" -> null
+          - from_port         = 3306 -> null
+          - id                = "sgrule-1458737608" -> null
+          - ipv6_cidr_blocks  = [] -> null
+          - prefix_list_ids   = [] -> null
+          - protocol          = "tcp" -> null
+          - security_group_id = "sg-04b61adc792fcc73e" -> null
+          - self              = false -> null
+          - to_port           = 3306 -> null
+          - type              = "ingress" -> null
+        }
+    
+      # module.vpc.module.security_group_rules.aws_security_group_rule.cidr_block["database_inbound_from_application_subnet_2b_ports_3306_protocol_tcp"] will be destroyed
+      - resource "aws_security_group_rule" "cidr_block" {
+          - cidr_blocks       = [
+              - "10.0.21.0/24",
+            ] -> null
+          - description       = "Inbound from Application Subnet 2B (TCP)" -> null
+          - from_port         = 3306 -> null
+          - id                = "sgrule-4035287676" -> null
+          - ipv6_cidr_blocks  = [] -> null
+          - prefix_list_ids   = [] -> null
+          - protocol          = "tcp" -> null
+          - security_group_id = "sg-04b61adc792fcc73e" -> null
+          - self              = false -> null
+          - to_port           = 3306 -> null
+          - type              = "ingress" -> null
+        }
+    
+      # module.vpc.module.security_group_rules.aws_security_group_rule.cidr_block["database_outbound_to_anywhere_ports_all_protocol_all"] will be destroyed
+      - resource "aws_security_group_rule" "cidr_block" {
+          - cidr_blocks       = [
+              - "0.0.0.0/0",
+            ] -> null
+          - description       = "Outbound to Anywhere (ALL)" -> null
+          - from_port         = 0 -> null
+          - id                = "sgrule-38873756" -> null
+          - ipv6_cidr_blocks  = [] -> null
+          - prefix_list_ids   = [] -> null
+          - protocol          = "-1" -> null
+          - security_group_id = "sg-04b61adc792fcc73e" -> null
+          - self              = false -> null
+          - to_port           = 0 -> null
+          - type              = "egress" -> null
+        }
+    
+      # module.vpc.module.security_group_rules.aws_security_group_rule.security_group["application_inbound_from_database_ports_3306_protocol_tcp"] will be destroyed
+      - resource "aws_security_group_rule" "security_group" {
+          - cidr_blocks              = [] -> null
+          - description              = "Inbound from database (TCP)" -> null
+          - from_port                = 3306 -> null
+          - id                       = "sgrule-2346379931" -> null
+          - ipv6_cidr_blocks         = [] -> null
+          - prefix_list_ids          = [] -> null
+          - protocol                 = "tcp" -> null
+          - security_group_id        = "sg-08b792f4397f1996c" -> null
+          - self                     = false -> null
+          - source_security_group_id = "sg-08b792f4397f1996c" -> null
+          - to_port                  = 3306 -> null
+          - type                     = "ingress" -> null
+        }
+    
+      # module.vpc.module.security_groups.aws_security_group.security_groups["application"] will be destroyed
+      - resource "aws_security_group" "security_groups" {
+          - arn                    = "arn:aws:ec2:ap-southeast-2:633144518364:security-group/sg-08b792f4397f1996c" -> null
+          - description            = "Application security group (Example Terraflops VPC)" -> null
+          - egress                 = [
+              - {
+                  - cidr_blocks      = [
+                      - "10.0.0.0/18",
+                    ]
+                  - description      = "Outbound to Example Terraflops VPC (ALL)"
+                  - from_port        = 0
+                  - ipv6_cidr_blocks = []
+                  - prefix_list_ids  = []
+                  - protocol         = "-1"
+                  - security_groups  = []
+                  - self             = false
+                  - to_port          = 0
+                },
+            ] -> null
+          - id                     = "sg-08b792f4397f1996c" -> null
+          - ingress                = [
+              - {
+                  - cidr_blocks      = [
+                      - "10.0.20.0/24",
+                    ]
+                  - description      = "Inbound from Application Subnet 2A (ALL)"
+                  - from_port        = 0
+                  - ipv6_cidr_blocks = []
+                  - prefix_list_ids  = []
+                  - protocol         = "-1"
+                  - security_groups  = []
+                  - self             = false
+                  - to_port          = 0
+                },
+              - {
+                  - cidr_blocks      = [
+                      - "10.0.21.0/24",
+                    ]
+                  - description      = "Inbound from Application Subnet 2B (ALL)"
+                  - from_port        = 0
+                  - ipv6_cidr_blocks = []
+                  - prefix_list_ids  = []
+                  - protocol         = "-1"
+                  - security_groups  = []
+                  - self             = false
+                  - to_port          = 0
+                },
+              - {
+                  - cidr_blocks      = []
+                  - description      = "Inbound from database (TCP)"
+                  - from_port        = 3306
+                  - ipv6_cidr_blocks = []
+                  - prefix_list_ids  = []
+                  - protocol         = "tcp"
+                  - security_groups  = []
+                  - self             = true
+                  - to_port          = 3306
+                },
+            ] -> null
+          - name                   = "Application" -> null
+          - owner_id               = "633144518364" -> null
+          - revoke_rules_on_delete = false -> null
+          - tags                   = {
+              - "Description" = "Application security group (Example Terraflops VPC)"
+              - "Name"        = "Application"
+            } -> null
+          - vpc_id                 = "vpc-098a7043eb96099c2" -> null
+        }
+    
+      # module.vpc.module.security_groups.aws_security_group.security_groups["database"] will be destroyed
+      - resource "aws_security_group" "security_groups" {
+          - arn                    = "arn:aws:ec2:ap-southeast-2:633144518364:security-group/sg-04b61adc792fcc73e" -> null
+          - description            = "Database security group (Example Terraflops VPC)" -> null
+          - egress                 = [
+              - {
+                  - cidr_blocks      = [
+                      - "0.0.0.0/0",
+                    ]
+                  - description      = "Outbound to Anywhere (ALL)"
+                  - from_port        = 0
+                  - ipv6_cidr_blocks = []
+                  - prefix_list_ids  = []
+                  - protocol         = "-1"
+                  - security_groups  = []
+                  - self             = false
+                  - to_port          = 0
+                },
+            ] -> null
+          - id                     = "sg-04b61adc792fcc73e" -> null
+          - ingress                = [
+              - {
+                  - cidr_blocks      = [
+                      - "10.0.20.0/24",
+                    ]
+                  - description      = "Inbound from Application Subnet 2A (TCP)"
+                  - from_port        = 3306
+                  - ipv6_cidr_blocks = []
+                  - prefix_list_ids  = []
+                  - protocol         = "tcp"
+                  - security_groups  = []
+                  - self             = false
+                  - to_port          = 3306
+                },
+              - {
+                  - cidr_blocks      = [
+                      - "10.0.21.0/24",
+                    ]
+                  - description      = "Inbound from Application Subnet 2B (TCP)"
+                  - from_port        = 3306
+                  - ipv6_cidr_blocks = []
+                  - prefix_list_ids  = []
+                  - protocol         = "tcp"
+                  - security_groups  = []
+                  - self             = false
+                  - to_port          = 3306
+                },
+            ] -> null
+          - name                   = "Database" -> null
+          - owner_id               = "633144518364" -> null
+          - revoke_rules_on_delete = false -> null
+          - tags                   = {
+              - "Description" = "Database security group (Example Terraflops VPC)"
+              - "Name"        = "Database"
+            } -> null
+          - vpc_id                 = "vpc-098a7043eb96099c2" -> null
+        }
+    
+      # module.vpc.module.security_groups.aws_security_group.security_groups["nat_instance"] will be destroyed
+      - resource "aws_security_group" "security_groups" {
+          - arn                    = "arn:aws:ec2:ap-southeast-2:633144518364:security-group/sg-08414b897bae19ab1" -> null
+          - description            = "NAT instance security group (Example Terraflops VPC)" -> null
+          - egress                 = [] -> null
+          - id                     = "sg-08414b897bae19ab1" -> null
+          - ingress                = [] -> null
+          - name                   = "NatInstance" -> null
+          - owner_id               = "633144518364" -> null
+          - revoke_rules_on_delete = false -> null
+          - tags                   = {
+              - "Description" = "NAT instance security group (Example Terraflops VPC)"
+              - "Name"        = "NatInstance"
+            } -> null
+          - vpc_id                 = "vpc-098a7043eb96099c2" -> null
+        }
+    
+      # module.vpc.module.subnets.aws_route_table.private_subnets["application_subnet_2a"] will be destroyed
+      - resource "aws_route_table" "private_subnets" {
+          - id               = "rtb-0f80d791424dcc258" -> null
+          - owner_id         = "633144518364" -> null
+          - propagating_vgws = [] -> null
+          - route            = [] -> null
+          - tags             = {
+              - "Name"       = "ApplicationSubnet2a"
+              - "SubnetType" = "Application"
+            } -> null
+          - vpc_id           = "vpc-098a7043eb96099c2" -> null
+        }
+    
+      # module.vpc.module.subnets.aws_route_table.private_subnets["application_subnet_2b"] will be destroyed
+      - resource "aws_route_table" "private_subnets" {
+          - id               = "rtb-06f355a18e087c6b7" -> null
+          - owner_id         = "633144518364" -> null
+          - propagating_vgws = [] -> null
+          - route            = [] -> null
+          - tags             = {
+              - "Name"       = "ApplicationSubnet2b"
+              - "SubnetType" = "Application"
+            } -> null
+          - vpc_id           = "vpc-098a7043eb96099c2" -> null
+        }
+    
+      # module.vpc.module.subnets.aws_route_table.private_subnets["data_subnet_2a"] will be destroyed
+      - resource "aws_route_table" "private_subnets" {
+          - id               = "rtb-0e4b2a36e36d121a0" -> null
+          - owner_id         = "633144518364" -> null
+          - propagating_vgws = [] -> null
+          - route            = [] -> null
+          - tags             = {
+              - "Name"       = "DataSubnet2a"
+              - "SubnetType" = "Data"
+            } -> null
+          - vpc_id           = "vpc-098a7043eb96099c2" -> null
+        }
+    
+      # module.vpc.module.subnets.aws_route_table.private_subnets["data_subnet_2b"] will be destroyed
+      - resource "aws_route_table" "private_subnets" {
+          - id               = "rtb-04f72acc20f5c439b" -> null
+          - owner_id         = "633144518364" -> null
+          - propagating_vgws = [] -> null
+          - route            = [] -> null
+          - tags             = {
+              - "Name"       = "DataSubnet2b"
+              - "SubnetType" = "Data"
+            } -> null
+          - vpc_id           = "vpc-098a7043eb96099c2" -> null
+        }
+    
+      # module.vpc.module.subnets.aws_route_table.public_subnets["public_subnet_2a"] will be destroyed
+      - resource "aws_route_table" "public_subnets" {
+          - id               = "rtb-046aa1f1875a53c1e" -> null
+          - owner_id         = "633144518364" -> null
+          - propagating_vgws = [] -> null
+          - route            = [
+              - {
+                  - cidr_block                = "0.0.0.0/0"
+                  - egress_only_gateway_id    = ""
+                  - gateway_id                = "igw-0fe7828b034e508ef"
+                  - instance_id               = ""
+                  - ipv6_cidr_block           = ""
+                  - nat_gateway_id            = ""
+                  - network_interface_id      = ""
+                  - transit_gateway_id        = ""
+                  - vpc_peering_connection_id = ""
+                },
+            ] -> null
+          - tags             = {
+              - "Name"       = "PublicSubnet2a"
+              - "SubnetType" = "Public"
+            } -> null
+          - vpc_id           = "vpc-098a7043eb96099c2" -> null
+        }
+    
+      # module.vpc.module.subnets.aws_route_table.public_subnets["public_subnet_2b"] will be destroyed
+      - resource "aws_route_table" "public_subnets" {
+          - id               = "rtb-01dbf6a650453a9e8" -> null
+          - owner_id         = "633144518364" -> null
+          - propagating_vgws = [] -> null
+          - route            = [
+              - {
+                  - cidr_block                = "0.0.0.0/0"
+                  - egress_only_gateway_id    = ""
+                  - gateway_id                = "igw-0fe7828b034e508ef"
+                  - instance_id               = ""
+                  - ipv6_cidr_block           = ""
+                  - nat_gateway_id            = ""
+                  - network_interface_id      = ""
+                  - transit_gateway_id        = ""
+                  - vpc_peering_connection_id = ""
+                },
+            ] -> null
+          - tags             = {
+              - "Name"       = "PublicSubnet2b"
+              - "SubnetType" = "Public"
+            } -> null
+          - vpc_id           = "vpc-098a7043eb96099c2" -> null
+        }
+    
+      # module.vpc.module.subnets.aws_route_table_association.private_subnets["application_subnet_2a"] will be destroyed
+      - resource "aws_route_table_association" "private_subnets" {
+          - id             = "rtbassoc-01d243371b4a7bd60" -> null
+          - route_table_id = "rtb-0f80d791424dcc258" -> null
+          - subnet_id      = "subnet-0b4e09132796444de" -> null
+        }
+    
+      # module.vpc.module.subnets.aws_route_table_association.private_subnets["application_subnet_2b"] will be destroyed
+      - resource "aws_route_table_association" "private_subnets" {
+          - id             = "rtbassoc-0b335507c3a44d554" -> null
+          - route_table_id = "rtb-06f355a18e087c6b7" -> null
+          - subnet_id      = "subnet-0f7c56595d385f9ae" -> null
+        }
+    
+      # module.vpc.module.subnets.aws_route_table_association.private_subnets["data_subnet_2a"] will be destroyed
+      - resource "aws_route_table_association" "private_subnets" {
+          - id             = "rtbassoc-07ef02d64eed9c92e" -> null
+          - route_table_id = "rtb-0e4b2a36e36d121a0" -> null
+          - subnet_id      = "subnet-005e6faf52715f4b6" -> null
+        }
+    
+      # module.vpc.module.subnets.aws_route_table_association.private_subnets["data_subnet_2b"] will be destroyed
+      - resource "aws_route_table_association" "private_subnets" {
+          - id             = "rtbassoc-08c74aaa6314e9ce8" -> null
+          - route_table_id = "rtb-04f72acc20f5c439b" -> null
+          - subnet_id      = "subnet-062991b486a30d25c" -> null
+        }
+    
+      # module.vpc.module.subnets.aws_route_table_association.public_subnets["public_subnet_2a"] will be destroyed
+      - resource "aws_route_table_association" "public_subnets" {
+          - id             = "rtbassoc-046030d0adb100c86" -> null
+          - route_table_id = "rtb-046aa1f1875a53c1e" -> null
+          - subnet_id      = "subnet-02a5a54025a2415e5" -> null
+        }
+    
+      # module.vpc.module.subnets.aws_route_table_association.public_subnets["public_subnet_2b"] will be destroyed
+      - resource "aws_route_table_association" "public_subnets" {
+          - id             = "rtbassoc-07fab10e6232e36e2" -> null
+          - route_table_id = "rtb-01dbf6a650453a9e8" -> null
+          - subnet_id      = "subnet-002e0dd781e157c42" -> null
+        }
+    
+      # module.vpc.module.subnets.aws_subnet.private_subnets["application_subnet_2a"] will be destroyed
+      - resource "aws_subnet" "private_subnets" {
+          - arn                             = "arn:aws:ec2:ap-southeast-2:633144518364:subnet/subnet-0b4e09132796444de" -> null
+          - assign_ipv6_address_on_creation = false -> null
+          - availability_zone               = "ap-southeast-2a" -> null
+          - availability_zone_id            = "apse2-az3" -> null
+          - cidr_block                      = "10.0.20.0/24" -> null
+          - id                              = "subnet-0b4e09132796444de" -> null
+          - map_public_ip_on_launch         = false -> null
+          - owner_id                        = "633144518364" -> null
+          - tags                            = {
+              - "Name"       = "ApplicationSubnet2a"
+              - "Public"     = "False"
+              - "SubnetType" = "Application"
+            } -> null
+          - vpc_id                          = "vpc-098a7043eb96099c2" -> null
+        }
+    
+      # module.vpc.module.subnets.aws_subnet.private_subnets["application_subnet_2b"] will be destroyed
+      - resource "aws_subnet" "private_subnets" {
+          - arn                             = "arn:aws:ec2:ap-southeast-2:633144518364:subnet/subnet-0f7c56595d385f9ae" -> null
+          - assign_ipv6_address_on_creation = false -> null
+          - availability_zone               = "ap-southeast-2b" -> null
+          - availability_zone_id            = "apse2-az1" -> null
+          - cidr_block                      = "10.0.21.0/24" -> null
+          - id                              = "subnet-0f7c56595d385f9ae" -> null
+          - map_public_ip_on_launch         = false -> null
+          - owner_id                        = "633144518364" -> null
+          - tags                            = {
+              - "Name"       = "ApplicationSubnet2b"
+              - "Public"     = "False"
+              - "SubnetType" = "Application"
+            } -> null
+          - vpc_id                          = "vpc-098a7043eb96099c2" -> null
+        }
+    
+      # module.vpc.module.subnets.aws_subnet.private_subnets["data_subnet_2a"] will be destroyed
+      - resource "aws_subnet" "private_subnets" {
+          - arn                             = "arn:aws:ec2:ap-southeast-2:633144518364:subnet/subnet-005e6faf52715f4b6" -> null
+          - assign_ipv6_address_on_creation = false -> null
+          - availability_zone               = "ap-southeast-2a" -> null
+          - availability_zone_id            = "apse2-az3" -> null
+          - cidr_block                      = "10.0.30.0/24" -> null
+          - id                              = "subnet-005e6faf52715f4b6" -> null
+          - map_public_ip_on_launch         = false -> null
+          - owner_id                        = "633144518364" -> null
+          - tags                            = {
+              - "Name"       = "DataSubnet2a"
+              - "Public"     = "False"
+              - "SubnetType" = "Data"
+            } -> null
+          - vpc_id                          = "vpc-098a7043eb96099c2" -> null
+        }
+    
+      # module.vpc.module.subnets.aws_subnet.private_subnets["data_subnet_2b"] will be destroyed
+      - resource "aws_subnet" "private_subnets" {
+          - arn                             = "arn:aws:ec2:ap-southeast-2:633144518364:subnet/subnet-062991b486a30d25c" -> null
+          - assign_ipv6_address_on_creation = false -> null
+          - availability_zone               = "ap-southeast-2b" -> null
+          - availability_zone_id            = "apse2-az1" -> null
+          - cidr_block                      = "10.0.31.0/24" -> null
+          - id                              = "subnet-062991b486a30d25c" -> null
+          - map_public_ip_on_launch         = false -> null
+          - owner_id                        = "633144518364" -> null
+          - tags                            = {
+              - "Name"       = "DataSubnet2b"
+              - "Public"     = "False"
+              - "SubnetType" = "Data"
+            } -> null
+          - vpc_id                          = "vpc-098a7043eb96099c2" -> null
+        }
+    
+      # module.vpc.module.subnets.aws_subnet.public_subnets["public_subnet_2a"] will be destroyed
+      - resource "aws_subnet" "public_subnets" {
+          - arn                             = "arn:aws:ec2:ap-southeast-2:633144518364:subnet/subnet-02a5a54025a2415e5" -> null
+          - assign_ipv6_address_on_creation = false -> null
+          - availability_zone               = "ap-southeast-2a" -> null
+          - availability_zone_id            = "apse2-az3" -> null
+          - cidr_block                      = "10.0.10.0/24" -> null
+          - id                              = "subnet-02a5a54025a2415e5" -> null
+          - map_public_ip_on_launch         = false -> null
+          - owner_id                        = "633144518364" -> null
+          - tags                            = {
+              - "Name"       = "PublicSubnet2a"
+              - "Public"     = "True"
+              - "SubnetType" = "Public"
+            } -> null
+          - vpc_id                          = "vpc-098a7043eb96099c2" -> null
+        }
+    
+      # module.vpc.module.subnets.aws_subnet.public_subnets["public_subnet_2b"] will be destroyed
+      - resource "aws_subnet" "public_subnets" {
+          - arn                             = "arn:aws:ec2:ap-southeast-2:633144518364:subnet/subnet-002e0dd781e157c42" -> null
+          - assign_ipv6_address_on_creation = false -> null
+          - availability_zone               = "ap-southeast-2b" -> null
+          - availability_zone_id            = "apse2-az1" -> null
+          - cidr_block                      = "10.0.11.0/24" -> null
+          - id                              = "subnet-002e0dd781e157c42" -> null
+          - map_public_ip_on_launch         = false -> null
+          - owner_id                        = "633144518364" -> null
+          - tags                            = {
+              - "Name"       = "PublicSubnet2b"
+              - "Public"     = "True"
+              - "SubnetType" = "Public"
+            } -> null
+          - vpc_id                          = "vpc-098a7043eb96099c2" -> null
+        }
+    
+    Plan: 0 to add, 0 to change, 32 to destroy.
+    
+    Do you really want to destroy all resources?
+      Terraform will destroy all your managed infrastructure, as shown above.
+      There is no undo. Only 'yes' will be accepted to confirm.
+    
+      Enter a value: yes
+    
+    module.vpc.module.subnets.aws_route_table_association.public_subnets["public_subnet_2a"]: Destroying... [id=rtbassoc-046030d0adb100c86]
+    module.vpc.module.subnets.aws_route_table_association.private_subnets["data_subnet_2a"]: Destroying... [id=rtbassoc-07ef02d64eed9c92e]
+    module.vpc.module.security_group_rules.aws_security_group_rule.security_group["application_inbound_from_database_ports_3306_protocol_tcp"]: Destroying... [id=sgrule-2346379931]
+    module.vpc.module.security_group_rules.aws_security_group_rule.cidr_block["application_inbound_from_application_subnet_2a_ports_all_protocol_all"]: Destroying... [id=sgrule-333784325]
+    module.vpc.module.security_group_rules.aws_security_group_rule.cidr_block["application_inbound_from_application_subnet_2b_ports_all_protocol_all"]: Destroying... [id=sgrule-3046256305]
+    module.vpc.aws_route.route_internet_gateway["public_subnet_2b"]: Destroying... [id=r-rtb-01dbf6a650453a9e81080289494]
+    module.vpc.aws_route.route_internet_gateway["public_subnet_2a"]: Destroying... [id=r-rtb-046aa1f1875a53c1e1080289494]
+    module.vpc.module.subnets.aws_route_table_association.private_subnets["application_subnet_2a"]: Destroying... [id=rtbassoc-01d243371b4a7bd60]
+    module.vpc.module.subnets.aws_route_table_association.private_subnets["data_subnet_2b"]: Destroying... [id=rtbassoc-08c74aaa6314e9ce8]
+    module.vpc.module.security_group_rules.aws_security_group_rule.cidr_block["database_inbound_from_application_subnet_2a_ports_3306_protocol_tcp"]: Destroying... [id=sgrule-1458737608]
+    module.vpc.aws_route.route_internet_gateway["public_subnet_2a"]: Destruction complete after 0s
+    module.vpc.module.security_group_rules.aws_security_group_rule.cidr_block["database_inbound_from_application_subnet_2b_ports_3306_protocol_tcp"]: Destroying... [id=sgrule-4035287676]
+    module.vpc.aws_route.route_internet_gateway["public_subnet_2b"]: Destruction complete after 0s
+    module.vpc.module.security_group_rules.aws_security_group_rule.cidr_block["database_outbound_to_anywhere_ports_all_protocol_all"]: Destroying... [id=sgrule-38873756]
+    module.vpc.module.subnets.aws_route_table_association.private_subnets["application_subnet_2a"]: Destruction complete after 0s
+    module.vpc.module.subnets.aws_route_table_association.private_subnets["application_subnet_2b"]: Destroying... [id=rtbassoc-0b335507c3a44d554]
+    module.vpc.module.subnets.aws_route_table_association.private_subnets["data_subnet_2a"]: Destruction complete after 0s
+    module.vpc.module.subnets.aws_route_table_association.public_subnets["public_subnet_2a"]: Destruction complete after 0s
+    module.vpc.module.subnets.aws_route_table_association.public_subnets["public_subnet_2b"]: Destroying... [id=rtbassoc-07fab10e6232e36e2]
+    module.vpc.module.security_group_rules.aws_security_group_rule.cidr_block["application_outbound_to_example_terraflops_vpc_ports_all_protocol_all"]: Destroying... [id=sgrule-4031555952]
+    module.vpc.module.subnets.aws_route_table_association.private_subnets["data_subnet_2b"]: Destruction complete after 0s
+    module.vpc.aws_internet_gateway.internet_gateway[0]: Destroying... [id=igw-0fe7828b034e508ef]
+    module.vpc.module.security_group_rules.aws_security_group_rule.cidr_block["application_inbound_from_application_subnet_2b_ports_all_protocol_all"]: Destruction complete after 0s
+    module.vpc.module.security_group_rules.aws_security_group_rule.cidr_block["database_inbound_from_application_subnet_2a_ports_3306_protocol_tcp"]: Destruction complete after 0s
+    module.vpc.module.subnets.aws_route_table_association.private_subnets["application_subnet_2b"]: Destruction complete after 0s
+    module.vpc.module.subnets.aws_route_table.private_subnets["application_subnet_2b"]: Destroying... [id=rtb-06f355a18e087c6b7]
+    module.vpc.module.subnets.aws_route_table.private_subnets["data_subnet_2a"]: Destroying... [id=rtb-0e4b2a36e36d121a0]
+    module.vpc.module.subnets.aws_subnet.private_subnets["data_subnet_2b"]: Destroying... [id=subnet-062991b486a30d25c]
+    module.vpc.module.subnets.aws_route_table_association.public_subnets["public_subnet_2b"]: Destruction complete after 0s
+    module.vpc.module.subnets.aws_route_table.private_subnets["application_subnet_2a"]: Destroying... [id=rtb-0f80d791424dcc258]
+    module.vpc.module.security_group_rules.aws_security_group_rule.cidr_block["application_inbound_from_application_subnet_2a_ports_all_protocol_all"]: Destruction complete after 1s
+    module.vpc.module.security_group_rules.aws_security_group_rule.cidr_block["database_inbound_from_application_subnet_2b_ports_3306_protocol_tcp"]: Destruction complete after 1s
+    module.vpc.module.subnets.aws_subnet.private_subnets["application_subnet_2a"]: Destroying... [id=subnet-0b4e09132796444de]
+    module.vpc.module.subnets.aws_subnet.private_subnets["application_subnet_2b"]: Destroying... [id=subnet-0f7c56595d385f9ae]
+    module.vpc.module.subnets.aws_subnet.private_subnets["data_subnet_2b"]: Destruction complete after 1s
+    module.vpc.module.subnets.aws_subnet.private_subnets["data_subnet_2a"]: Destroying... [id=subnet-005e6faf52715f4b6]
+    module.vpc.module.subnets.aws_route_table.private_subnets["data_subnet_2a"]: Destruction complete after 1s
+    module.vpc.module.subnets.aws_route_table.private_subnets["application_subnet_2a"]: Destruction complete after 1s
+    module.vpc.module.subnets.aws_route_table.private_subnets["data_subnet_2b"]: Destroying... [id=rtb-04f72acc20f5c439b]
+    module.vpc.module.subnets.aws_route_table.public_subnets["public_subnet_2a"]: Destroying... [id=rtb-046aa1f1875a53c1e]
+    module.vpc.module.subnets.aws_route_table.private_subnets["application_subnet_2b"]: Destruction complete after 1s
+    module.vpc.module.subnets.aws_subnet.public_subnets["public_subnet_2b"]: Destroying... [id=subnet-002e0dd781e157c42]
+    module.vpc.module.security_group_rules.aws_security_group_rule.cidr_block["database_outbound_to_anywhere_ports_all_protocol_all"]: Destruction complete after 1s
+    module.vpc.module.subnets.aws_route_table.public_subnets["public_subnet_2b"]: Destroying... [id=rtb-01dbf6a650453a9e8]
+    module.vpc.module.security_group_rules.aws_security_group_rule.security_group["application_inbound_from_database_ports_3306_protocol_tcp"]: Destruction complete after 1s
+    module.vpc.module.subnets.aws_subnet.public_subnets["public_subnet_2a"]: Destroying... [id=subnet-02a5a54025a2415e5]
+    module.vpc.module.subnets.aws_subnet.private_subnets["application_subnet_2b"]: Destruction complete after 0s
+    module.vpc.module.subnets.aws_subnet.private_subnets["application_subnet_2a"]: Destruction complete after 0s
+    module.vpc.module.subnets.aws_subnet.public_subnets["public_subnet_2b"]: Destruction complete after 1s
+    module.vpc.module.subnets.aws_subnet.private_subnets["data_subnet_2a"]: Destruction complete after 1s
+    module.vpc.module.subnets.aws_route_table.public_subnets["public_subnet_2a"]: Destruction complete after 1s
+    module.vpc.module.subnets.aws_route_table.private_subnets["data_subnet_2b"]: Destruction complete after 1s
+    module.vpc.module.subnets.aws_subnet.public_subnets["public_subnet_2a"]: Destruction complete after 1s
+    module.vpc.module.security_group_rules.aws_security_group_rule.cidr_block["application_outbound_to_example_terraflops_vpc_ports_all_protocol_all"]: Destruction complete after 2s
+    module.vpc.module.security_groups.aws_security_group.security_groups["nat_instance"]: Destroying... [id=sg-08414b897bae19ab1]
+    module.vpc.module.security_groups.aws_security_group.security_groups["application"]: Destroying... [id=sg-08b792f4397f1996c]
+    module.vpc.module.security_groups.aws_security_group.security_groups["database"]: Destroying... [id=sg-04b61adc792fcc73e]
+    module.vpc.module.subnets.aws_route_table.public_subnets["public_subnet_2b"]: Destruction complete after 1s
+    module.vpc.module.security_groups.aws_security_group.security_groups["nat_instance"]: Destruction complete after 0s
+    module.vpc.module.security_groups.aws_security_group.security_groups["database"]: Destruction complete after 0s
+    module.vpc.module.security_groups.aws_security_group.security_groups["application"]: Destruction complete after 0s
+    module.vpc.aws_internet_gateway.internet_gateway[0]: Still destroying... [id=igw-0fe7828b034e508ef, 10s elapsed]
+    module.vpc.aws_internet_gateway.internet_gateway[0]: Destruction complete after 11s
+    module.vpc.aws_vpc.vpc: Destroying... [id=vpc-098a7043eb96099c2]
+    module.vpc.aws_vpc.vpc: Destruction complete after 0s
+    
+    Destroy complete! Resources: 32 destroyed.
 ```

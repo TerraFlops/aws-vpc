@@ -1,5 +1,7 @@
 provider "aws" {
   region = "ap-southeast-2"
+  access_key = var.aws_access_key_id
+  secret_key = var.aws_secret_access_key
 }
 
 module "vpc" {
@@ -27,7 +29,7 @@ module "vpc" {
       "10.0.10.0/24",
       "10.0.11.0/24"
     ]
-    compute = [
+    application = [
       "10.0.20.0/24",
       "10.0.21.0/24"
     ]
