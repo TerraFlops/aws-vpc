@@ -5,7 +5,19 @@ only, if you get any benefit out of it- feel free to use it, however no support 
  
 ### AWS Virtual Private Cloud
 
-This module creates
+This module creates an AWS VPC along with the following optional components:
+
+* Subnets
+* Security Groups
+* Security Group Rules
+* Internet Gateway
+* NAT 
+    * Native AWS NAT Gateway
+    * Cost-Saving EC2 NAT Instances + Associated Security Group Rules
+
+### Examples
+
+For an example of using this component, refer to the README.MD file in the examples folder. 
 
 ### Important Note: NAT Instance Security Group Rules
 

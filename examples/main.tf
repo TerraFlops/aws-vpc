@@ -55,13 +55,14 @@ module "vpc" {
 
   security_group_rules = {
     application = [
-      {direction="inbound", entity_type="cidr_block", entity_id="anywhere", ports="all", protocol="all"},
+      {direction="inbound", entity_type="cidr_block", entity_id="application_subnet_2a", ports="all", protocol="all"},
+      {direction="inbound", entity_type="cidr_block", entity_id="application_subnet_2b", ports="all", protocol="all"},
       {direction="inbound", entity_type="security_group", entity_id="database", ports="3306", protocol="tcp"},
-      {direction="outbound", entity_type="cidr_block", entity_id="anywhere", ports="all", protocol="all"},
-      {direction="outbound", entity_type="cidr_block", entity_id="public_subnet_2a", ports="all", protocol="all"},
+      {direction="outbound", entity_type="cidr_block", entity_id="vpc", ports="all", protocol="all"},
     ]
     database = [
-      {direction="inbound", entity_type="cidr_block", entity_id="vpc", ports="3306", protocol="tcp"},
+      {direction="inbound", entity_type="cidr_block", entity_id="application_subnet_2a", ports="3306", protocol="tcp"},
+      {direction="inbound", entity_type="cidr_block", entity_id="application_subnet_2b", ports="3306", protocol="tcp"},
       {direction="outbound", entity_type="cidr_block", entity_id="anywhere", ports="all", protocol="all"},
     ]
   }
