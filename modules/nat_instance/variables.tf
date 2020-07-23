@@ -10,18 +10,18 @@ variable "security_group_id" {
 
 variable "public_subnet_ids" {
   description = "Set of AWS subnet IDs in which NAT instances should be created"
-  type = set(string)
+  type = list(string)
   default = []
 }
 
 variable "private_subnet_ids" {
   description = "Set of AWS subnet IDs which should be routed to the NAT instances"
-  type = set(string)
+  type = list(string)
   default = []
 }
 
 variable "eip_allocation_ids" {
-  description = "Optional list of Elastic IP allocation IDs to be assigned to NAT instances"
+  description = "Optional list of Elastic IP allocation IDs to be assigned to NAT instances, if supplied you must have the same number of EIPs as public subnets or it will be ignored"
   type = list(string)
   default = []
 }
