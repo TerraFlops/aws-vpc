@@ -79,45 +79,48 @@ resource "aws_security_group_rule" "egress" {
 
 # Create elastic IPs for NAT instances
 resource "aws_eip" "nat_instance" {
-  for_each = data.aws_subnet.public_subnets
-  network_interface = aws_network_interface.network_interface[each.key].id
+  count = length(var.public_subnet_ids)
+  network_interface = aws_network_interface.network_interface[count.index].id
 
   tags = {
-    Name = "${each.value.tags["Name"]}NatInstanceEip"
+    Name = "${data.aws_subnet.public_subnets[count.index].tags["Name"]}NatInstanceEip"
   }
 }
 
 # Create ENI for the NAT instances and attach to the Elastic IP we just created
 resource "aws_network_interface" "network_interface" {
-  for_each = data.aws_subnet.public_subnets
+  count = length(var.public_subnet_ids)
 
   security_groups = [var.security_group_id]
-  subnet_id = each.value.id
+  subnet_id = data.aws_subnet.public_subnets[count.index].id
   source_dest_check = false
   description = "NAT instance network interface"
 
   tags = {
-    Name = "${each.value.tags["Name"]}NatInstance"
-    AvailabilityZone = each.value.availability_zone
+    Name = "${data.aws_subnet.public_subnets[count.index].tags["Name"]}NatInstance"
+    AvailabilityZone = data.aws_subnet.public_subnets[count.index].availability_zone
   }
 }
 
 # Create a route in each private subnet back to the appropriate NAT instance
 resource "aws_route" "nat_instance" {
-  for_each = data.aws_subnet.private_subnets
-  route_table_id = data.aws_route_table.private_subnets[each.key].id
+  count = length(var.private_subnet_ids)
+
+  route_table_id = data.aws_route_table.private_subnets[count.index].id
   destination_cidr_block = "0.0.0.0/0"
-  network_interface_id = [
-    for interface in aws_network_interface.network_interface: interface.id
-    if interface.tags["AvailabilityZone"] == each.value.availability_zone
-  ][0]
+  network_interface_id = flatten([
+    for interface in aws_network_interface.network_interface: flatten([
+      for subnet in data.aws_subnet.public_subnets: interface["id"]
+      if interface["tags"]["AvailabilityZone"] == subnet.availability_zone
+    ])
+  ])[0]
 }
 
 # Create launch template for the EC2 NAT instances
 resource "aws_launch_template" "nat_instance" {
-  for_each = data.aws_subnet.public_subnets
+  count = length(var.public_subnet_ids)
 
-  name = "${each.value.tags["Name"]}NatInstanceLaunchTemplate"
+  name = "${data.aws_subnet.public_subnets[count.index].tags["Name"]}NatInstanceLaunchTemplate"
   description = "NAT instance launch template"
   image_id = data.aws_ami.nat_instance.id
 
@@ -140,7 +143,7 @@ resource "aws_launch_template" "nat_instance" {
         {
           path : "/opt/nat/runonce.sh",
           content : templatefile("${path.module}/scripts/runonce.sh", {
-            eni_id = aws_network_interface.network_interface[each.key].id
+            eni_id = aws_network_interface.network_interface[count.index].id
           }),
           permissions : "0755",
         },
@@ -172,10 +175,10 @@ resource "aws_launch_template" "nat_instance" {
 # is unexpectedly terminated
 
 resource "aws_autoscaling_group" "nat_instance" {
-  for_each = data.aws_subnet.public_subnets
+  count = length(var.public_subnet_ids)
 
   # Name the ASG
-  name = "${each.value.tags["Name"]}NatInstanceAutoScalingGroup"
+  name = "${data.aws_subnet.public_subnets[count.index].tags["Name"]}NatInstanceAutoScalingGroup"
 
   # We only ever want a single NAT instance in each subnet
   desired_capacity = 1
@@ -184,13 +187,13 @@ resource "aws_autoscaling_group" "nat_instance" {
 
   # Launch a NAT instance in each of the subnets
   vpc_zone_identifier = [
-    each.value.id
+    data.aws_subnet.public_subnets[count.index].id
   ]
 
   # Tag each instance with an appropriate name
   tag {
     key = "Name"
-    value = "${each.value.tags["Name"]}NatInstance"
+    value = "${data.aws_subnet.public_subnets[count.index]["Name"]}NatInstance"
     propagate_at_launch = true
   }
 
@@ -204,7 +207,7 @@ resource "aws_autoscaling_group" "nat_instance" {
     # Link to the launch template we created
     launch_template {
       launch_template_specification {
-        launch_template_id = aws_launch_template.nat_instance[each.key].id
+        launch_template_id = aws_launch_template.nat_instance[count.index].id
         version = "$Latest"
       }
       dynamic "override" {
