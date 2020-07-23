@@ -3,21 +3,21 @@
 # ------------------------------------------------------------------------------------------------------------------------
 
 data "aws_subnet" "public_subnets" {
-  for_each = var.public_subnet_ids
-  id = each.value
+  count = length(var.public_subnet_ids)
+  id = var.public_subnet_ids[count.index]
   vpc_id = var.vpc_id
 }
 
 data "aws_subnet" "private_subnets" {
-  for_each = var.private_subnet_ids
-  id = each.value
+  count = length(var.private_subnet_ids)
+  id = var.public_subnet_ids[count.index]
   vpc_id = var.vpc_id
 }
 
 data "aws_route_table" "private_subnets" {
-  for_each = var.private_subnet_ids
+  count = length(var.private_subnet_ids)
   vpc_id = var.vpc_id
-  subnet_id = each.value
+  subnet_id = var.public_subnet_ids[count.index]
 }
 
 # ------------------------------------------------------------------------------------------------------------------------
