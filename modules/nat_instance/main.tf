@@ -139,19 +139,19 @@ resource "aws_launch_template" "nat_instance" {
       write_files : concat([
         {
           path : "/opt/nat/runonce.sh",
-          content : templatefile("${path.module}/nat_instance/runonce.sh", {
+          content : templatefile("${path.module}/scripts/runonce.sh", {
             eni_id = aws_network_interface.network_interface[each.key].id
           }),
           permissions : "0755",
         },
         {
           path : "/opt/nat/nat.sh",
-          content : file("${path.module}/nat_instance/nat.sh"),
+          content : file("${path.module}/scripts/nat.sh"),
           permissions : "0755",
         },
         {
           path : "/etc/systemd/system/nat.service",
-          content : file("${path.module}/nat_instance/nat.service"),
+          content : file("${path.module}/scripts/nat.service"),
         },
       ]),
       runcmd : [
