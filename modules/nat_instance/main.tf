@@ -83,7 +83,7 @@ resource "aws_eip" "nat_instance" {
   network_interface = aws_network_interface.network_interface[each.key].id
 
   tags = {
-    Name = "${each.value.tags["Name"]}-nat-instance-eip"
+    Name = "${each.value.tags["Name"]}NatInstanceEip"
   }
 }
 
@@ -97,7 +97,7 @@ resource "aws_network_interface" "network_interface" {
   description = "NAT instance network interface"
 
   tags = {
-    Name = "${each.value.tags["Name"]}-nat-instance"
+    Name = "${each.value.tags["Name"]}NatInstance"
     AvailabilityZone = each.value.availability_zone
   }
 }
@@ -117,7 +117,7 @@ resource "aws_route" "nat_instance" {
 resource "aws_launch_template" "nat_instance" {
   for_each = data.aws_subnet.public_subnets
 
-  name = "${each.value.tags["Name"]}-nat-instance-launch-template"
+  name = "${each.value.tags["Name"]}NatInstanceLaunchTemplate"
   description = "NAT instance launch template"
   image_id = data.aws_ami.nat_instance.id
 
@@ -160,7 +160,7 @@ resource "aws_launch_template" "nat_instance" {
   ]))
 
   tags = {
-    Name = "nat-instance-launch-template"
+    Name = "NatInstanceLaunchTemplate"
   }
 }
 
@@ -175,7 +175,7 @@ resource "aws_autoscaling_group" "nat_instance" {
   for_each = data.aws_subnet.public_subnets
 
   # Name the ASG
-  name = "${each.value.tags["Name"]}-nat-gateway-autoscaling-group"
+  name = "${each.value.tags["Name"]}NatInstanceAutoScalingGroup"
 
   # We only ever want a single NAT instance in each subnet
   desired_capacity = 1
@@ -190,7 +190,7 @@ resource "aws_autoscaling_group" "nat_instance" {
   # Tag each instance with an appropriate name
   tag {
     key = "Name"
-    value = "${each.value.tags["Name"]}-nat-gateway"
+    value = "${each.value.tags["Name"]}NatInstance"
     propagate_at_launch = true
   }
 
@@ -271,7 +271,7 @@ resource "aws_iam_role" "nat_instance_role" {
 
 # Create IAM profile for the EC2 instance
 resource "aws_iam_instance_profile" "nat_instance_role" {
-  name = "nat-instance-iam-profile"
+  name = "NatInstanceIamProfile"
   role = aws_iam_role.nat_instance_role.name
 }
 
