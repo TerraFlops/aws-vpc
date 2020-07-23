@@ -9,10 +9,32 @@ output "public_subnets" {
   })
 }
 
+output "public_subnet_ids" {
+  value = tomap({
+    for name, subnet in var.public_subnets:
+      name => aws_subnet.public_subnets[name].id
+  })
+}
+
+output "public_subnet_arns" {
+  value = tomap({
+    for name, subnet in var.public_subnets:
+      name => aws_subnet.public_subnets[name].arn
+  })
+}
+
+
 output "public_route_tables" {
   description = "Map of public route tables indexed by their identifier"
   value = tomap({
   for subnet_id, route_table in aws_route_table.public_subnets: subnet_id => route_table
+  })
+}
+
+output "public_route_table_ids" {
+  value = tomap({
+    for name, route_table in var.public_subnets:
+      name => aws_route_table.public_subnets[name].id
   })
 }
 
@@ -27,9 +49,30 @@ output "private_subnets" {
   })
 }
 
+output "private_subnet_ids" {
+  value = tomap({
+    for name, subnet in var.private_subnets:
+      name => aws_subnet.private_subnets[name].id
+  })
+}
+
+output "private_subnet_arns" {
+  value = tomap({
+    for name, subnet in var.private_subnets:
+      name => aws_subnet.private_subnets[name].arn
+  })
+}
+
 output "private_route_tables" {
   description = "Map of private route tables indexed by their identifier"
   value = tomap({
   for subnet_id, route_table in aws_route_table.private_subnets: subnet_id => route_table
+  })
+}
+
+output "private_route_table_ids" {
+  value = tomap({
+    for name, route_table in var.private_subnets:
+      name => aws_route_table.private_subnets[name].id
   })
 }

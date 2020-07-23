@@ -80,9 +80,13 @@ module "security_group_rules" {
 # ------------------------------------------------------------------------------------------------------------------------
 
 module "nat_instance" {
+  depends_on = [
+    module.security_groups.security_groups
+  ]
+
   source = "./modules/nat_instance"
   count = var.nat_instance_enabled == true ? 1 : 0
-  security_group_id = module.security_groups.security_groups[var.nat_instance_security_group]["id"]
+  security_group_id = module.security_groups.security_group_ids[var.nat_instance_security_group]
   vpc_id = aws_vpc.vpc.id
   private_subnet_ids = [ for subnet in module.subnets.private_subnets: subnet["id"] ]
   public_subnet_ids = [ for subnet in module.subnets.public_subnets: subnet["id"] ]
