@@ -74,3 +74,17 @@ module "security_group_rules" {
   lookup_protocol_names = var.security_group_lookup_protocol_names
   lookup_cidr_blocks = local.lookup_cidr_blocks
 }
+
+# ------------------------------------------------------------------------------------------------------------------------
+# Create NAT instance
+# ------------------------------------------------------------------------------------------------------------------------
+
+module "nat_instance" {
+  source = "./modules/nat_instance"
+  count = var.nat_instance_enabled == true ? 1 : 0
+  security_group_id = module.security_groups.security_groups[var.nat_instance_security_group]["id"]
+  vpc_id = aws_vpc.vpc.id
+  private_subnet_ids = [ for subnet in module.subnets.private_subnets: subnet["id"] ]
+  public_subnet_ids = [ for subnet in module.subnets.public_subnets: subnet["id"] ]
+  eip_allocation_ids = var.nat_instance_eip_allocation_ids
+}

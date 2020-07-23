@@ -1,24 +1,23 @@
 # ------------------------------------------------------------------------------------------------------------------------
-# EC2 NAT instance component
+# Retrieve AWS resources
 # ------------------------------------------------------------------------------------------------------------------------
 
-# It is recommended that NAT gateways are used in production environments, and EC2 NAT instances are used in non-production
-# environments for cost savings
+data "aws_subnet" "public_subnets" {
+  for_each = var.public_subnet_ids
+  id = each.value
+  vpc_id = var.vpc_id
+}
 
-locals {
-  # Create map of all public subnets (those which route directly to the internet gateway)
-  subnets_public_nat_instance = tomap({
-  for subnet in local.subnets_array:
-  replace(subnet["subnet_name"], "-", "_") => subnet
-  if subnet["subnet_type"] == var.internet_gateway && var.nat_instance_enabled == true
-  })
+data "aws_subnet" "private_subnets" {
+  for_each = var.private_subnet_ids
+  id = each.value
+  vpc_id = var.vpc_id
+}
 
-  # Create map of all private subnets (those which do not route directly to the internet gateway)
-  subnets_private_nat_instance = tomap({
-  for subnet in local.subnets_array:
-  replace(subnet["subnet_name"], "-", "_") => subnet
-  if subnet["subnet_type"] != var.internet_gateway && var.nat_instance_enabled == true
-  })
+data "aws_route_table" "private_subnets" {
+  for_each = var.private_subnet_ids
+  vpc_id = var.vpc_id
+  subnet_id = each.value
 }
 
 # ------------------------------------------------------------------------------------------------------------------------
@@ -27,32 +26,26 @@ locals {
 
 data "aws_ami" "nat_instance" {
   most_recent = true
-  owners = [
-    "amazon"]
+  owners = ["amazon"]
   filter {
     name = "architecture"
-    values = [
-      "x86_64"]
+    values = ["x86_64"]
   }
   filter {
     name = "root-device-type"
-    values = [
-      "ebs"]
+    values = ["ebs"]
   }
   filter {
     name = "name"
-    values = [
-      "amzn2-ami-hvm-*"]
+    values = ["amzn2-ami-hvm-*"]
   }
   filter {
     name = "virtualization-type"
-    values = [
-      "hvm"]
+    values = ["hvm"]
   }
   filter {
     name = "block-device-mapping.volume-type"
-    values = [
-      "gp2"]
+    values = ["gp2"]
   }
 }
 
@@ -60,14 +53,12 @@ data "aws_ami" "nat_instance" {
 # Security group rules
 # ------------------------------------------------------------------------------------------------------------------------
 
-# Create security group rules allowing all inbound traffic to the NAT instance
+# Create security group rules allowing all inbound traffic from the private subnets to the NAT instance
 resource "aws_security_group_rule" "ingress" {
-  count = var.nat_instance_enabled == true ? 1 : 0
-  security_group_id = module.security_groups.security_group_ids[var.nat_instance_security_group]
+  security_group_id = var.security_group_id
   type = "ingress"
   cidr_blocks = [
-  for subnet in aws_subnet.subnets: subnet.cidr_block
-  if subnet.tags["SubnetPrivate"] == "1"
+    for subnet in data.aws_subnet.private_subnets: subnet.cidr_block
   ]
   from_port = 0
   to_port = 0
@@ -76,8 +67,7 @@ resource "aws_security_group_rule" "ingress" {
 
 # Create security group rules allowing all outbound traffic to the NAT instance
 resource "aws_security_group_rule" "egress" {
-  count = var.nat_instance_enabled == true ? 1 : 0
-  security_group_id = module.security_groups.security_group_ids[var.nat_instance_security_group]
+  security_group_id = var.security_group_id
   type = "egress"
   cidr_blocks = [
     "0.0.0.0/0"
@@ -89,64 +79,56 @@ resource "aws_security_group_rule" "egress" {
 
 # Create elastic IPs for NAT instances
 resource "aws_eip" "nat_instance" {
-  for_each = local.subnets_public_nat_instance
+  for_each = data.aws_subnet.public_subnets
   network_interface = aws_network_interface.network_interface[each.key].id
 
   tags = {
-    Name = "${aws_subnet.subnets[each.key].tags["Name"]}-nat-instance-eip"
+    Name = "${each.value.tags["Name"]}-nat-instance-eip"
   }
 }
 
 # Create ENI for the NAT instances and attach to the Elastic IP we just created
 resource "aws_network_interface" "network_interface" {
-  for_each = local.subnets_public_nat_instance
+  for_each = data.aws_subnet.public_subnets
 
-  security_groups = [
-    module.security_groups.security_group_ids[var.nat_instance_security_group]
-  ]
-  subnet_id = aws_subnet.subnets[each.key].id
+  security_groups = [var.security_group_id]
+  subnet_id = each.value.id
   source_dest_check = false
   description = "NAT instance network interface"
 
   tags = {
-    Name = "${aws_subnet.subnets[each.key].tags["Name"]}-nat-instance"
-    # There may be a better way to do this- but for now this tag will be used below when creating routes
-    # from private subnets back to this NAT gateway
-    AvailabilityZone = aws_subnet.subnets[each.key].tags["AvailabilityZone"]
+    Name = "${each.value.tags["Name"]}-nat-instance"
+    AvailabilityZone = each.value.availability_zone
   }
 }
 
 # Create a route in each private subnet back to the appropriate NAT instance
 resource "aws_route" "nat_instance" {
-  for_each = local.subnets_private_nat_instance
-  route_table_id = aws_route_table.route_tables[each.key].id
+  for_each = data.aws_subnet.private_subnets
+  route_table_id = data.aws_route_table.private_subnets[each.key].id
   destination_cidr_block = "0.0.0.0/0"
-  # There may be a better way to do this- but for now we are matching the private subnet to the public
-  # subnet using the 'AvailabilityZone' tag that we created above
   network_interface_id = [
-  for interface in aws_network_interface.network_interface: interface.id
-  if interface.tags["AvailabilityZone"] == aws_subnet.subnets[each.key].tags["AvailabilityZone"]
+    for interface in aws_network_interface.network_interface: interface.id
+    if interface.tags["AvailabilityZone"] == each.value.availability_zone
   ][0]
 }
 
 # Create launch template for the EC2 NAT instances
 resource "aws_launch_template" "nat_instance" {
-  for_each = local.subnets_public_nat_instance
+  for_each = data.aws_subnet.public_subnets
 
-  name = "${aws_subnet.subnets[each.key].tags["Name"]}-nat-instance-launch-template"
+  name = "${each.value.tags["Name"]}-nat-instance-launch-template"
   description = "NAT instance launch template"
   image_id = data.aws_ami.nat_instance.id
 
   iam_instance_profile {
-    arn = aws_iam_instance_profile.nat_instance_role[0].arn
+    arn = aws_iam_instance_profile.nat_instance_role.arn
   }
 
   # Attach network interface we created
   network_interfaces {
     associate_public_ip_address = true
-    security_groups = [
-      module.security_groups.security_group_ids[var.nat_instance_security_group]
-    ]
+    security_groups = [ var.security_group_id ]
     delete_on_termination = true
   }
 
@@ -190,10 +172,10 @@ resource "aws_launch_template" "nat_instance" {
 # is unexpectedly terminated
 
 resource "aws_autoscaling_group" "nat_instance" {
-  for_each = local.subnets_public_nat_instance
+  for_each = data.aws_subnet.public_subnets
 
   # Name the ASG
-  name = "${aws_subnet.subnets[each.key].tags["Name"]}-nat-gateway-autoscaling-group"
+  name = "${each.value.tags["Name"]}-nat-gateway-autoscaling-group"
 
   # We only ever want a single NAT instance in each subnet
   desired_capacity = 1
@@ -202,13 +184,13 @@ resource "aws_autoscaling_group" "nat_instance" {
 
   # Launch a NAT instance in each of the subnets
   vpc_zone_identifier = [
-    aws_subnet.subnets[each.key].id
+    each.value.id
   ]
 
   # Tag each instance with an appropriate name
   tag {
     key = "Name"
-    value = "${aws_subnet.subnets[each.key].tags["Name"]}-nat-gateway"
+    value = "${each.value.tags["Name"]}-nat-gateway"
     propagate_at_launch = true
   }
 
@@ -283,29 +265,25 @@ data "aws_iam_policy_document" "nat_instance_ec2_attach_network_interface" {
 
 # Create IAM role for the NAT instances
 resource "aws_iam_role" "nat_instance_role" {
-  count = var.nat_instance_enabled == true ? 1 : 0
   name = "NatInstance"
   assume_role_policy = data.aws_iam_policy_document.nat_instance_ec2_assume_role.json
 }
 
 # Create IAM profile for the EC2 instance
 resource "aws_iam_instance_profile" "nat_instance_role" {
-  count = var.nat_instance_enabled == true ? 1 : 0
   name = "nat-instance-iam-profile"
-  role = aws_iam_role.nat_instance_role[0].name
+  role = aws_iam_role.nat_instance_role.name
 }
 
 # Attach SSM managed instance core policy to the role
 resource "aws_iam_role_policy_attachment" "nat_instance_ssm_policy" {
-  count = var.nat_instance_enabled == true ? 1 : 0
   policy_arn = "arn:aws:iam::aws:policy/AmazonSSMManagedInstanceCore"
-  role = aws_iam_role.nat_instance_role[0].name
+  role = aws_iam_role.nat_instance_role.name
 }
 
 # Attach policy allowing NAT instance to attach network interfaces
 resource "aws_iam_role_policy" "nat_instance_eni_policy" {
-  count = var.nat_instance_enabled == true ? 1 : 0
   name_prefix = "NatInstancePolicy"
-  role = aws_iam_role.nat_instance_role[0].name
+  role = aws_iam_role.nat_instance_role.name
   policy = data.aws_iam_policy_document.nat_instance_ec2_attach_network_interface.json
 }

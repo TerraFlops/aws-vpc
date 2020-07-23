@@ -136,6 +136,12 @@ variable "nat_instance_security_group" {
   default = null
 }
 
+variable "nat_instance_eip_allocation_ids" {
+  description = "Optional list of Elastic IP allocation IDs to be assigned to NAT instances"
+  type = list(string)
+  default = []
+}
+
 # ------------------------------------------------------------------------------------------------------------------------
 # NAT gateway settings
 # ------------------------------------------------------------------------------------------------------------------------
