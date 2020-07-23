@@ -81,7 +81,8 @@ module "security_group_rules" {
 
 module "nat_instance" {
   depends_on = [
-    module.security_groups.security_groups
+    module.security_groups.security_groups,
+    aws_internet_gateway.internet_gateway
   ]
 
   source = "./modules/nat_instance"
