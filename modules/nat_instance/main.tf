@@ -193,7 +193,7 @@ resource "aws_autoscaling_group" "nat_instance" {
   # Tag each instance with an appropriate name
   tag {
     key = "Name"
-    value = "${data.aws_subnet.public_subnets[count.index]["Name"]}NatInstance"
+    value = "${data.aws_subnet.public_subnets[count.index].tags["Name"]}NatInstance"
     propagate_at_launch = true
   }
 
