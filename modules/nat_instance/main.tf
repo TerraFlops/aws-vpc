@@ -17,7 +17,7 @@ data "aws_subnet" "private_subnets" {
 data "aws_route_table" "private_subnets" {
   count = length(var.private_subnet_ids)
   vpc_id = var.vpc_id
-  subnet_id = var.public_subnet_ids[count.index]
+  subnet_id = var.private_subnet_ids[count.index]
 }
 
 # ------------------------------------------------------------------------------------------------------------------------
