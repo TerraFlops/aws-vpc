@@ -2,7 +2,7 @@
 Description = NAT Instance
 
 [Service]
-ExecStart = /opt/nat/nat.sh
+ExecStart = /opt/snat/snat.sh
 Type = oneshot
 
 [Install]
