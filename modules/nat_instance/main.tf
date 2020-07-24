@@ -141,24 +141,24 @@ resource "aws_launch_template" "nat_instance" {
     yamlencode({
       write_files : concat([
         {
-          path : "/opt/nat/runonce.sh",
-          content : templatefile("${path.module}/scripts/runonce.sh", {
+          path : "/opt/snat/runonce.sh",
+          content : templatefile("${path.module}/snat/runonce.sh", {
             eni_id = aws_network_interface.network_interface[count.index].id
           }),
           permissions : "0755",
         },
         {
-          path : "/opt/nat/nat.sh",
-          content : file("${path.module}/scripts/nat.sh"),
+          path : "/opt/snat/snat.sh",
+          content : file("${path.module}/snat/snat.sh"),
           permissions : "0755",
         },
         {
-          path : "/etc/systemd/system/nat.service",
-          content : file("${path.module}/scripts/nat.service"),
+          path : "/etc/systemd/system/snat.service",
+          content : file("${path.module}/snat/snat.service"),
         },
       ]),
       runcmd : [
-        "/opt/nat/runonce.sh"],
+        "/opt/snat/runonce.sh"],
     })
   ]))
 
