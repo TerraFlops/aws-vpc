@@ -20,6 +20,12 @@ variable "tags" {
   default = {}
 }
 
+variable "enable_flow_logs" {
+  description = "VPC Settings: Enable CloudWatch VPC flow logs"
+  type = bool
+  default = true
+}
+
 # ------------------------------------------------------------------------------------------------------------------------
 # Instance tenancy settings
 # ------------------------------------------------------------------------------------------------------------------------

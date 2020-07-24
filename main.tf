@@ -2,6 +2,10 @@
 # Create VPC
 # ------------------------------------------------------------------------------------------------------------------------
 
+locals {
+  vpc_name = join("", [for element in split("_", replace(lower(var.name), "-", "_")): title(element)])
+}
+
 resource "aws_vpc" "vpc" {
   cidr_block = var.cidr_block
   enable_dns_hostnames = var.enable_dns_hostnames
@@ -10,7 +14,7 @@ resource "aws_vpc" "vpc" {
 
   # Create tags for the name and description, overriding with user values where supplied
   tags = merge({
-    Name = join("", [for element in split("_", replace(lower(var.name), "-", "_")): title(element)])
+    Name = local.vpc_name
     Description = var.description
   }, var.tags)
 }
@@ -24,6 +28,17 @@ module "subnets" {
   vpc_id = aws_vpc.vpc.id
   private_subnets = local.private_subnets
   public_subnets = local.public_subnets
+}
+
+# ------------------------------------------------------------------------------------------------------------------------
+# VPC Flow Logs
+# ------------------------------------------------------------------------------------------------------------------------
+
+module "flow_logs" {
+  count = var.enable_flow_logs == true ? 1 : 0
+  source = "./modules/flow_logs"
+  vpc_id = aws_vpc.vpc.id
+  log_group_name = "${local.vpc_name}FlowLogs"
 }
 
 # ------------------------------------------------------------------------------------------------------------------------
