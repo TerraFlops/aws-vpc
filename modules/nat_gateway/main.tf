@@ -37,7 +37,7 @@ resource "aws_nat_gateway" "nat_gateway" {
   allocation_id = var.eip_allocation_ids == null ? aws_eip.nat_gateway_eip[count.index].id : var.eip_allocation_ids[count.index]
   tags = {
     Name = "${data.aws_subnet.public_subnets[count.index].tags["Name"]}NatGateway"
-    AvailabilityZone = data.aws_subnet.public_subnets[count.index].tags["AvailabilityZone"]
+    AvailabilityZone = data.aws_subnet.public_subnets[count.index].availability_zone
   }
 }
 
