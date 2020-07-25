@@ -1,5 +1,8 @@
 # Retrieve all of the security groups that we require to create these rules
 data "aws_security_group" "security_group_rules" {
+  depends_on = [
+    aws_security_group_rule.security_group
+  ]
   for_each = var.security_group_rules
   name = join("", [for element in split("_", replace(lower(each.key), "-", "_")): title(element)])
   vpc_id = var.vpc_id
