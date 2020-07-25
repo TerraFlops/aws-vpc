@@ -122,4 +122,9 @@ module "nat_gateway" {
   count = var.nat_instance_enabled == false && var.nat_gateway_enabled == true && var.internet_gateway_enabled == true ? 1 : 0
 
   source = "./modules/nat_gateway"
+  vpc_id = aws_vpc.vpc.id
+  private_subnet_ids = [ for subnet in module.subnets.private_subnets: subnet["id"] ]
+  public_subnet_ids = [ for subnet in module.subnets.public_subnets: subnet["id"] ]
+  security_group_id = module.security_groups.security_group_ids[var.nat_gateway_security_group]
+  eip_allocation_ids = var.nat_instance_eip_allocation_ids
 }

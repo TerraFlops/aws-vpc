@@ -11,7 +11,6 @@ variable "security_group_id" {
 variable "public_subnet_ids" {
   description = "Set of AWS subnet IDs in which NAT instances should be created"
   type = list(string)
-  default = []
 }
 
 variable "private_subnet_ids" {
