@@ -90,3 +90,28 @@ output "internet_gateway_arn" {
   description = "If an Internet Gateway was created this will contain its ARN, otherwise the value will be null"
   value = var.internet_gateway_enabled == true ? aws_internet_gateway.internet_gateway[0].arn : null
 }
+
+# ------------------------------------------------------------------------------------------------------------------------
+# Security groups
+# ------------------------------------------------------------------------------------------------------------------------
+
+output "security_groups" {
+  description = "Map of all security group AWS resources indexed by the Terraform identifier"
+  value = tomap({
+    for id in var.security_groups: id => module.security_groups.security_groups[id]
+  })
+}
+
+output "security_group_ids" {
+  description = "Map of all security group AWS resources IDs indexed by the Terraform identifier"
+  value = tomap({
+    for id in var.security_groups: id => module.security_groups.security_group_ids[id]
+  })
+}
+
+output "security_group_arns" {
+  description = "Map of all security group AWS resources ARNs indexed by the Terraform identifier"
+  value = tomap({
+    for id in var.security_groups: id => module.security_groups.security_group_arns[id]
+  })
+}
