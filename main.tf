@@ -85,6 +85,7 @@ module "security_group_rules" {
   ]
   source = "./modules/security_group_rules"
   vpc_id = aws_vpc.vpc.id
+  security_group_ids = module.security_groups.security_group_ids
   security_group_rules = var.security_group_rules
   lookup_protocol_names = var.security_group_lookup_protocol_names
   lookup_cidr_blocks = local.lookup_cidr_blocks

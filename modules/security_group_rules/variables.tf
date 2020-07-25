@@ -3,6 +3,12 @@ variable "vpc_id" {
   type = string
 }
 
+variable "security_group_ids" {
+  description = "Map of security group IDs"
+  type = map(string)
+  default = {}
+}
+
 variable "security_group_rules" {
   description = "List of security group ingress rules to be created"
   type = map(list(object({
