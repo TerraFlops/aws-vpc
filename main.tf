@@ -111,3 +111,15 @@ module "nat_instance" {
   public_subnet_ids = [ for subnet in module.subnets.public_subnets: subnet["id"] ]
   eip_allocation_ids = var.nat_instance_eip_allocation_ids
 }
+
+# ------------------------------------------------------------------------------------------------------------------------
+# Create NAT gateway
+# ------------------------------------------------------------------------------------------------------------------------
+
+module "nat_gateway" {
+  # Only create NAT gateway if we have an Internet Gateway enabled, and the NAT instnace is disabled- otherwise this will
+  # fail due to the VPC not having an attached Internet Gateway, or due to routing conflicts
+  count = var.nat_instance_enabled == false && var.nat_gateway_enabled == true && var.internet_gateway_enabled == true ? 1 : 0
+
+  source = "./modules/nat_gateway"
+}
