@@ -45,7 +45,7 @@ output "public_route_table_ids" {
 output "private_subnets" {
   description = "Map of private subnets indexed by their identifier"
   value = tomap({
-  for subnet_id, subnet in aws_subnet.private_subnets: subnet_id => subnet
+    for subnet_id, subnet in aws_subnet.private_subnets: subnet_id => subnet
   })
 }
 
