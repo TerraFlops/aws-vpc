@@ -17,4 +17,7 @@ resource "aws_security_group" "security_groups" {
     Name = join("", [for element in split("_", replace(lower(each.key), "-", "_")): title(element)])
     Description = var.append_vpc_description == true ? "${each.value} (${data.aws_vpc.vpc.tags["Description"]})" : each.value
   }
+  lifecycle {
+    create_before_destroy = false
+  }
 }
