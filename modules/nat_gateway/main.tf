@@ -34,7 +34,7 @@ resource "aws_nat_gateway" "nat_gateway" {
   count = length(var.public_subnet_ids)
   subnet_id = data.aws_subnet.public_subnets[count.index].id
   # Link the NAT gateway to the elastic IP we created
-  allocation_id = length(eip_allocation_ids) > 0 ? aws_eip.nat_gateway_eip[count.index].id : var.eip_allocation_ids[count.index]
+  allocation_id = length(var.eip_allocation_ids) > 0 ? aws_eip.nat_gateway_eip[count.index].id : var.eip_allocation_ids[count.index]
   tags = {
     Name = "${data.aws_subnet.public_subnets[count.index].tags["Name"]}NatGateway"
     AvailabilityZone = data.aws_subnet.public_subnets[count.index].availability_zone
