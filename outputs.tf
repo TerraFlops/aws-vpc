@@ -19,7 +19,7 @@ output "vpc_name" {
 
 output "vpc_description" {
   description = "VPC description"
-  value = aws_vpc.vpc.tags["Description"]
+  value = lookup(aws_vpc.vpc.tags, "Description", null)
 }
 
 # ------------------------------------------------------------------------------------------------------------------------
