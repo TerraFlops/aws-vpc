@@ -10,7 +10,7 @@ data "aws_subnet" "public_subnets" {
 
 data "aws_subnet" "private_subnets" {
   count = length(var.private_subnet_ids)
-  id = var.public_subnet_ids[count.index]
+  id = var.private_subnet_ids[count.index]
   vpc_id = var.vpc_id
 }
 
