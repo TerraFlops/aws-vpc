@@ -102,6 +102,8 @@ module "nat_instance" {
 
   depends_on = [
     module.security_groups.security_groups,
+    module.subnets.private_subnet_ids,
+    module.subnets.public_subnet_ids,
     aws_internet_gateway.internet_gateway
   ]
 
