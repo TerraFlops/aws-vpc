@@ -3,6 +3,12 @@ variable "vpc_id" {
   type = string
 }
 
+variable "nat_instance_iam_prefix" {
+  description = "Optional prefix to prepend to IAM role/policy name"
+  type = string
+  default = ""
+}
+
 variable "security_group_id" {
   description = "The AWS security group ID to be assigned to the NAT gateways"
   type = string

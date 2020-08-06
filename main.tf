@@ -110,6 +110,7 @@ module "nat_instance" {
   source = "./modules/nat_instance"
   security_group_id = module.security_groups.security_group_ids[var.nat_instance_security_group]
   vpc_id = aws_vpc.vpc.id
+  nat_instance_iam_prefix = local.vpc_name
   private_subnet_ids = [ for subnet in module.subnets.private_subnets: subnet["id"] ]
   public_subnet_ids = [ for subnet in module.subnets.public_subnets: subnet["id"] ]
   eip_allocation_ids = var.nat_instance_eip_allocation_ids

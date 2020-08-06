@@ -275,13 +275,13 @@ data "aws_iam_policy_document" "nat_instance_ec2_attach_network_interface" {
 
 # Create IAM role for the NAT instances
 resource "aws_iam_role" "nat_instance_role" {
-  name = "NatInstance"
+  name = "${var.nat_instance_iam_prefix}NatInstance"
   assume_role_policy = data.aws_iam_policy_document.nat_instance_ec2_assume_role.json
 }
 
 # Create IAM profile for the EC2 instance
 resource "aws_iam_instance_profile" "nat_instance_role" {
-  name = "NatInstanceIamProfile"
+  name = "${var.nat_instance_iam_prefix}NatInstanceIamProfile"
   role = aws_iam_role.nat_instance_role.name
 }
 
@@ -293,7 +293,7 @@ resource "aws_iam_role_policy_attachment" "nat_instance_ssm_policy" {
 
 # Attach policy allowing NAT instance to attach network interfaces
 resource "aws_iam_role_policy" "nat_instance_eni_policy" {
-  name_prefix = "NatInstancePolicy"
+  name_prefix = "${var.nat_instance_iam_prefix}NatInstancePolicy"
   role = aws_iam_role.nat_instance_role.name
   policy = data.aws_iam_policy_document.nat_instance_ec2_attach_network_interface.json
 }
