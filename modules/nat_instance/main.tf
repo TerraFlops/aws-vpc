@@ -220,8 +220,8 @@ resource "aws_autoscaling_group" "nat_instance" {
       dynamic "override" {
         # Specify suitable instance types
         for_each = [
-          "t3.nano",
-          "t3a.nano"
+          "t3a.nano",
+          "t3.nano"
         ]
         content {
           instance_type = override.value
