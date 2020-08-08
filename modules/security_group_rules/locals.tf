@@ -40,7 +40,7 @@ locals {
           from_port = length(split("-", rule["ports"])) == 2 ? split("-", rule["ports"])[0] : rule["ports"] == "all" ? 0 : rule["ports"]
           to_port = length(split("-", rule["ports"])) == 2 ? split("-", rule["ports"])[1] : rule["ports"] == "all" ? 0 : rule["ports"]
           protocol = lower(rule["protocol"])
-          source_security_group_id = var.security_group_ids[id]
+          source_security_group_id = var.security_group_ids[rule["entity_id"]]
           description = join(" ", [
             rule["direction"] == "inbound" ? "Inbound from" : "Outbound to",
             "${join("", [ for element in split("_", rule["entity_id"]): title(lower(element)) ])} security group",
