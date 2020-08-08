@@ -11,8 +11,8 @@ locals {
           id = lower(join("_", [id, rule["direction"], rule["direction"] == "inbound" ? "from": "to", replace(replace(local.lookup_cidr_blocks[lower(rule["entity_id"])]["name"], " ", "_"), "-", "_"), "ports", replace(rule["ports"], "-", "_"), "protocol", rule["protocol"]]))
           type = rule["direction"] == "inbound" ? "ingress" : "egress"
           security_group_id = var.security_group_ids[id]
-          from_port = length(split("-", rule["ports"])) == 2 ? split("-", rule["ports"])[0] : rule["ports"] == "all" ? 0 : rule["ports"]
-          to_port = length(split("-", rule["ports"])) == 2 ? split("-", rule["ports"])[1] : rule["ports"] == "all" ? 0 : rule["ports"]
+          from_port = length(split("-", rule["ports"])) == 2 ? split("-", rule["ports"])[0] : rule["ports"] == "all" ? -1 : rule["ports"]
+          to_port = length(split("-", rule["ports"])) == 2 ? split("-", rule["ports"])[1] : rule["ports"] == "all" ? -1 : rule["ports"]
           protocol = lower(rule["protocol"])
           cidr_blocks = [local.lookup_cidr_blocks[rule["entity_id"]]["cidr_block"]]
           description = join(" ", [
@@ -37,8 +37,8 @@ locals {
           id = lower(join("_", [id, rule["direction"], rule["direction"] == "inbound" ? "from": "to", replace(lower(rule["entity_id"]), "-", "_"), "ports", replace(rule["ports"], "-", "_"), "protocol", rule["protocol"]]))
           type = rule["direction"] == "inbound" ? "ingress" : "egress"
           security_group_id = var.security_group_ids[id]
-          from_port = length(split("-", rule["ports"])) == 2 ? split("-", rule["ports"])[0] : rule["ports"] == "all" ? 0 : rule["ports"]
-          to_port = length(split("-", rule["ports"])) == 2 ? split("-", rule["ports"])[1] : rule["ports"] == "all" ? 0 : rule["ports"]
+          from_port = length(split("-", rule["ports"])) == 2 ? split("-", rule["ports"])[0] : rule["ports"] == "all" ? -1 : rule["ports"]
+          to_port = length(split("-", rule["ports"])) == 2 ? split("-", rule["ports"])[1] : rule["ports"] == "all" ? -1 : rule["ports"]
           protocol = lower(rule["protocol"])
           source_security_group_id = var.security_group_ids[rule["entity_id"]]
           description = join(" ", [
