@@ -43,7 +43,7 @@ locals {
           source_security_group_id = var.security_group_ids[id]
           description = join(" ", [
             rule["direction"] == "inbound" ? "Inbound from" : "Outbound to",
-            join("", [ for element in split("_", rule["entity_id"]): title(lower(element)) ]),
+            "${join("", [ for element in split("_", rule["entity_id"]): title(lower(element)) ])} security group",
             contains(keys(local.lookup_protocol_names), tostring(rule["protocol"])) ? "(${local.lookup_protocol_names[rule["protocol"]]})" : "(${upper(rule["protocol"])})"
           ])
         }
