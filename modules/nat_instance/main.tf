@@ -104,7 +104,7 @@ resource "aws_network_interface" "network_interface" {
   description = "NAT instance network interface"
 
   tags = {
-    Name = "${data.aws_subnet.public_subnets[count.index].tags["Name"]}NatInstance"
+    Name = "${data.aws_subnet.public_subnets[count.index].tags["Name"]}NatGateway"
     AvailabilityZone = data.aws_subnet.public_subnets[count.index].availability_zone
   }
 }
@@ -127,7 +127,7 @@ resource "aws_route" "nat_instance" {
 resource "aws_launch_template" "nat_instance" {
   count = length(var.public_subnet_ids)
 
-  name = "${data.aws_subnet.public_subnets[count.index].tags["Name"]}NatInstanceLaunchTemplate"
+  name = "${data.aws_subnet.public_subnets[count.index].tags["Name"]}NatGatewayLaunchTemplate"
   description = "NAT instance launch template"
   image_id = data.aws_ami.nat_instance.id
 
@@ -170,7 +170,7 @@ resource "aws_launch_template" "nat_instance" {
   ]))
 
   tags = {
-    Name = "NatInstanceLaunchTemplate"
+    Name = "NatGatewayLaunchTemplate"
   }
 }
 
@@ -185,7 +185,7 @@ resource "aws_autoscaling_group" "nat_instance" {
   count = length(var.public_subnet_ids)
 
   # Name the ASG
-  name = "${data.aws_subnet.public_subnets[count.index].tags["Name"]}NatInstanceAutoScalingGroup"
+  name = "${data.aws_subnet.public_subnets[count.index].tags["Name"]}NatGatewayAutoScalingGroup"
 
   # We only ever want a single NAT instance in each subnet
   desired_capacity = 1
@@ -200,7 +200,7 @@ resource "aws_autoscaling_group" "nat_instance" {
   # Tag each instance with an appropriate name
   tag {
     key = "Name"
-    value = "${data.aws_subnet.public_subnets[count.index].tags["Name"]}NatInstance"
+    value = "${data.aws_subnet.public_subnets[count.index].tags["Name"]}NatGateway"
     propagate_at_launch = true
   }
 
@@ -275,13 +275,13 @@ data "aws_iam_policy_document" "nat_instance_ec2_attach_network_interface" {
 
 # Create IAM role for the NAT instances
 resource "aws_iam_role" "nat_instance_role" {
-  name = "${var.nat_instance_iam_prefix}NatInstance"
+  name = "${var.nat_instance_iam_prefix}NatGateway"
   assume_role_policy = data.aws_iam_policy_document.nat_instance_ec2_assume_role.json
 }
 
 # Create IAM profile for the EC2 instance
 resource "aws_iam_instance_profile" "nat_instance_role" {
-  name = "${var.nat_instance_iam_prefix}NatInstanceIamProfile"
+  name = "${var.nat_instance_iam_prefix}NatGatewayIamProfile"
   role = aws_iam_role.nat_instance_role.name
 }
 
@@ -293,7 +293,7 @@ resource "aws_iam_role_policy_attachment" "nat_instance_ssm_policy" {
 
 # Attach policy allowing NAT instance to attach network interfaces
 resource "aws_iam_role_policy" "nat_instance_eni_policy" {
-  name_prefix = "${var.nat_instance_iam_prefix}NatInstancePolicy"
+  name_prefix = "${var.nat_instance_iam_prefix}NatGatewayPolicy"
   role = aws_iam_role.nat_instance_role.name
   policy = data.aws_iam_policy_document.nat_instance_ec2_attach_network_interface.json
 }
