@@ -98,7 +98,7 @@ module "security_group_rules" {
 module "nat_instance" {
   # Only create NAT instance if we have an Internet Gateway enabled, and the NAT gateway is disabled- otherwise this will
   # fail due to the VPC not having an attached Internet Gateway, or due to routing conflicts
-  count = var.nat_instance_enabled == true && var.nat_gateway_enabled == false && var.internet_gateway_enabled == true > 0 ? 1 : 0
+  count = var.nat_instance_enabled == true && var.nat_gateway_enabled == false && var.internet_gateway_enabled == true ? 1 : 0
 
   depends_on = [
     module.security_groups.security_groups,
@@ -125,7 +125,7 @@ module "nat_instance" {
 module "nat_gateway" {
   # Only create NAT gateway if we have an Internet Gateway enabled, and the NAT instance is disabled- otherwise this will
   # fail due to the VPC not having an attached Internet Gateway, or due to routing conflicts
-  count = var.nat_instance_enabled == false && var.nat_gateway_enabled == true && var.internet_gateway_enabled == true > 0 ? 1 : 0
+  count = var.nat_instance_enabled == false && var.nat_gateway_enabled == true && var.internet_gateway_enabled == true ? 1 : 0
 
   source = "./modules/nat_gateway"
   vpc_id = aws_vpc.vpc.id
