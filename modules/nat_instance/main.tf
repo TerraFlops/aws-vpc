@@ -79,7 +79,7 @@ resource "aws_security_group_rule" "egress" {
 
 # Create elastic IPs for NAT instances is no EIP allocation IDs were specified
 resource "aws_eip" "nat_instance" {
-  count = length(var.eip_allocation_ids) == 0 ? 0 : length(var.public_subnet_ids)
+  count = length(var.public_subnet_ids)
   network_interface = aws_network_interface.network_interface[count.index].id
 
   tags = {
@@ -87,10 +87,10 @@ resource "aws_eip" "nat_instance" {
   }
 }
 
-# Link existing EIPs to interfaces if they were passed in
+# Link EIPs to the interfaces if they were passed in
 resource "aws_eip_association" "nat_instance" {
-  count = length(var.eip_allocation_ids)
-  allocation_id = var.eip_allocation_ids[count.index]
+  count = length(var.public_subnet_ids)
+  allocation_id = aws_eip.nat_instance[count.index].allocation_id
   network_interface_id = aws_network_interface.network_interface[count.index].id
 }
 
