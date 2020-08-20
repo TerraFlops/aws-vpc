@@ -87,13 +87,6 @@ resource "aws_eip" "nat_instance" {
   }
 }
 
-# Link EIPs to the interfaces if they were passed in
-resource "aws_eip_association" "nat_instance" {
-  count = length(var.public_subnet_ids)
-  allocation_id = aws_eip.nat_instance[count.index].allocation_id
-  network_interface_id = aws_network_interface.network_interface[count.index].id
-}
-
 # Create ENI for the NAT instances and attach to the Elastic IP we just created
 resource "aws_network_interface" "network_interface" {
   count = length(var.public_subnet_ids)
