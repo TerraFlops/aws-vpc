@@ -99,6 +99,7 @@ output "security_groups" {
   description = "Map of all security group AWS resources indexed by the Terraform identifier"
   value = tomap({
     for id, description in var.security_groups: id => module.security_groups.security_groups[id]
+    if contains(keys(module.security_groups.security_group_ids), id)
   })
 }
 
@@ -106,6 +107,7 @@ output "security_group_ids" {
   description = "Map of all security group AWS resources IDs indexed by the Terraform identifier"
   value = tomap({
     for id, description in var.security_groups: id => module.security_groups.security_group_ids[id]
+    if contains(keys(module.security_groups.security_group_ids), id)
   })
 }
 
@@ -113,5 +115,6 @@ output "security_group_arns" {
   description = "Map of all security group AWS resources ARNs indexed by the Terraform identifier"
   value = tomap({
     for id, description in var.security_groups: id => module.security_groups.security_group_arns[id]
+    if contains(keys(module.security_groups.security_group_ids), id)
   })
 }
