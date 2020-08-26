@@ -127,4 +127,9 @@ resource "aws_instance" "nat_gateway" {
   tags = {
     Name = "${data.aws_subnet.public_subnets[count.index].tags["Name"]}NatGateway"
   }
+  lifecycle {
+    ignore_changes = [
+      network_interface_id
+    ]
+  }
 }
