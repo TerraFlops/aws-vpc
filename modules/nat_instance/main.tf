@@ -120,6 +120,12 @@ resource "aws_route" "nat_instance" {
 resource "aws_launch_template" "nat_instance" {
   count = length(var.public_subnet_ids)
 
+  lifecycle {
+    ignore_changes = [
+      image_id
+    ]
+  }
+
   name = "${data.aws_subnet.public_subnets[count.index].tags["Name"]}NatGatewayLaunchTemplate"
   description = "NAT instance launch template"
   image_id = data.aws_ami.nat_instance.id
