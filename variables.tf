@@ -142,11 +142,6 @@ variable "nat_instance_security_group" {
   default = null
 }
 
-variable "nat_instance_eip_allocation_ids" {
-  description = "Optional list of Elastic IP allocation IDs to be assigned to NAT instances, if supplied you must have the same number of EIPs as public subnets or it will be ignored"
-  type = list(string)
-  default = []
-}
 
 # ------------------------------------------------------------------------------------------------------------------------
 # NAT gateway settings
@@ -162,12 +157,6 @@ variable "nat_gateway_security_group" {
   description = "The security group to attach to NAT gateways (if applicable)"
   type = string
   default = null
-}
-
-variable "nat_gateway_eip_allocation_ids" {
-  description = "Optional list of Elastic IP allocation IDs to be assigned to NAT gateways, if supplied you must have the same number of EIPs as public subnets or it will be ignored"
-  type = list(string)
-  default = []
 }
 
 # ------------------------------------------------------------------------------------------------------------------------

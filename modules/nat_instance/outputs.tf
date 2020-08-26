@@ -3,9 +3,5 @@ output "network_interface" {
 }
 
 output "eip" {
-  value = aws_eip.nat_instance
-}
-
-output "launch_template" {
-  value = aws_launch_template.nat_instance
+  value = aws_eip.nat_gateway
 }

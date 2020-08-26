@@ -3,12 +3,6 @@ variable "vpc_id" {
   type = string
 }
 
-variable "nat_instance_iam_prefix" {
-  description = "Optional prefix to prepend to IAM role/policy name"
-  type = string
-  default = ""
-}
-
 variable "security_group_id" {
   description = "The AWS security group ID to be assigned to the NAT gateways"
   type = string
@@ -19,14 +13,14 @@ variable "public_subnet_ids" {
   type = list(string)
 }
 
-variable "private_subnet_ids" {
-  description = "Set of AWS subnet IDs which should be routed to the NAT gateways"
-  type = list(string)
-  default = []
+variable "instance_type" {
+  description = "EC2 instance type to launch. If none entered defaults to a 't3a.nano' instance"
+  type = string
+  default = "t3a.nano"
 }
 
-variable "eip_allocation_ids" {
-  description = "Optional list of Elastic IP allocation IDs to be assigned to NAT gateways, if supplied you must have the same number of EIPs as public subnets or it will be ignored"
+variable "private_subnet_ids" {
+  description = "Set of AWS subnet IDs which should be routed to the NAT gateways"
   type = list(string)
   default = []
 }

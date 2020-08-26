@@ -21,10 +21,10 @@ data "aws_route_table" "private_subnets" {
 }
 
 # ------------------------------------------------------------------------------------------------------------------------
-# NAT instance AMI settings
+# NAT gateway AMI settings
 # ------------------------------------------------------------------------------------------------------------------------
 
-data "aws_ami" "nat_instance" {
+data "aws_ami" "nat_gateway" {
   most_recent = true
   owners = ["amazon"]
   filter {
@@ -32,20 +32,16 @@ data "aws_ami" "nat_instance" {
     values = ["x86_64"]
   }
   filter {
-    name = "root-device-type"
-    values = ["ebs"]
-  }
-  filter {
     name = "name"
-    values = ["amzn-ami-vpc-nat-2018.03*"]
+    values = ["amzn-ami-vpc-nat-*"]
   }
   filter {
     name = "virtualization-type"
     values = ["hvm"]
   }
   filter {
-    name = "block-device-mapping.volume-type"
-    values = ["gp2"]
+    name = "ena-support"
+    values = ["true"]
   }
 }
 
@@ -53,7 +49,7 @@ data "aws_ami" "nat_instance" {
 # Security group rules
 # ------------------------------------------------------------------------------------------------------------------------
 
-# Create security group rules allowing all inbound traffic from the private subnets to the NAT instance
+# Create security group rules allowing all inbound traffic from the private subnets to the NAT gateway
 resource "aws_security_group_rule" "ingress" {
   security_group_id = var.security_group_id
   type = "ingress"
@@ -65,7 +61,7 @@ resource "aws_security_group_rule" "ingress" {
   protocol = -1
 }
 
-# Create security group rules allowing all outbound traffic to the NAT instance
+# Create security group rules allowing all outbound traffic to the NAT gateway
 resource "aws_security_group_rule" "egress" {
   security_group_id = var.security_group_id
   type = "egress"
@@ -77,76 +73,57 @@ resource "aws_security_group_rule" "egress" {
   protocol = -1
 }
 
-# Create elastic IPs for NAT instances is no EIP allocation IDs were specified
-resource "aws_eip" "nat_instance" {
+# ------------------------------------------------------------------------------------------------------------------------
+# Create network interface for each NAT gateway
+# ------------------------------------------------------------------------------------------------------------------------
+
+# Create elastic IPs for NAT gateways is no EIP allocation IDs were specified
+resource "aws_eip" "nat_gateway" {
   count = length(var.public_subnet_ids)
   network_interface = aws_network_interface.network_interface[count.index].id
-
   tags = {
-    Name = "${data.aws_subnet.public_subnets[count.index].tags["Name"]}NatInstanceEip"
-  }
-
-  lifecycle {
-    ignore_changes = [
-      tags
-    ]
+    Name = "${data.aws_subnet.public_subnets[count.index].tags["Name"]}NatGatewayEip"
+    AvailabilityZone = data.aws_subnet.public_subnets[count.index].availability_zone
   }
 }
 
-# Create ENI for the NAT instances and attach to the Elastic IP we just created
+# Create ENI for the NAT gateways and attach to the Elastic IP we just created
 resource "aws_network_interface" "network_interface" {
   count = length(var.public_subnet_ids)
-
   security_groups = [var.security_group_id]
   subnet_id = data.aws_subnet.public_subnets[count.index].id
   source_dest_check = false
-  description = "NAT instance network interface"
-
+  description = "NAT gateway network interface"
   tags = {
     Name = "${data.aws_subnet.public_subnets[count.index].tags["Name"]}NatGateway"
     AvailabilityZone = data.aws_subnet.public_subnets[count.index].availability_zone
   }
 }
 
-# Create a route in each private subnet back to the appropriate NAT instance
-resource "aws_route" "nat_instance" {
+# Create a route in each private subnet back to the appropriate NAT 
+resource "aws_route" "nat_gateway" {
   count = length(var.private_subnet_ids)
-
   route_table_id = data.aws_route_table.private_subnets[count.index].id
   destination_cidr_block = "0.0.0.0/0"
-  network_interface_id = flatten([
-    for interface in aws_network_interface.network_interface: flatten([
-      for subnet in data.aws_subnet.public_subnets: interface["id"]
-      if interface["tags"]["AvailabilityZone"] == subnet.availability_zone
-    ])
-  ])[0]
-
-  lifecycle {
-    ignore_changes = [
-      route_table_id
-    ]
-  }
+  # Route to the network interface that is in the same availability zone
+  network_interface_id = [
+    for interface in aws_network_interface.network_interface: interface.id
+    if interface["tags"]["AvailabilityZone"] == data.aws_subnet.private_subnets[count.index].availability_zone
+  ][0]
 }
 
-# Create a NAT instance in each public subnet
-resource "aws_instance" "nat_instance" {
+# ------------------------------------------------------------------------------------------------------------------------
+# Create an EC2 instance in each public subnet
+# ------------------------------------------------------------------------------------------------------------------------
+
+resource "aws_instance" "nat_gateway" {
   count = length(var.public_subnet_ids)
-  ami = data.aws_ami.nat_instance.id
-  instance_type = "t3a.nano"
+  ami = data.aws_ami.nat_gateway.id
+  instance_type = var.instance_type
   network_interface {
     device_index = 0
-    network_interface_id = flatten([
-      for interface in aws_network_interface.network_interface: flatten([
-        for subnet in data.aws_subnet.public_subnets: interface["id"]
-        if interface["tags"]["AvailabilityZone"] == subnet.availability_zone
-      ])
-    ])[0]
-    security_groups = [
-    var.security_group_id
-  ]
-    subnet_id = data.aws_subnet.public_subnets[count.index].id
+    network_interface_id = aws_network_interface.network_interface[count.index].id
   }
-
   tags = {
     Name = "${data.aws_subnet.public_subnets[count.index].tags["Name"]}NatGateway"
   }

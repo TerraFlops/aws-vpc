@@ -18,9 +18,3 @@ variable "private_subnet_ids" {
   type = list(string)
   default = []
 }
-
-variable "eip_allocation_ids" {
-  description = "Optional list of Elastic IP allocation IDs to be assigned to NAT instances, if supplied you must have the same number of EIPs as public subnets or it will be ignored"
-  type = list(string)
-  default = []
-}

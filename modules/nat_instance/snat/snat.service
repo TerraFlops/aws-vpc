@@ -1,9 +1,0 @@
-[Unit]
-Description = NAT Instance
-
-[Service]
-ExecStart = /opt/snat/snat.sh
-Type = oneshot
-
-[Install]
-WantedBy = multi-user.target
