@@ -121,6 +121,7 @@ resource "aws_launch_template" "nat_instance" {
   count = length(var.public_subnet_ids)
 
   lifecycle {
+    create_before_destroy = false
     ignore_changes = [
       image_id
     ]
