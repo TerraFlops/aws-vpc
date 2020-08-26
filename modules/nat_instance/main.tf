@@ -85,6 +85,12 @@ resource "aws_eip" "nat_instance" {
   tags = {
     Name = "${data.aws_subnet.public_subnets[count.index].tags["Name"]}NatInstanceEip"
   }
+
+  lifecycle {
+    ignore_changes = [
+      tags
+    ]
+  }
 }
 
 # Create ENI for the NAT instances and attach to the Elastic IP we just created
@@ -258,7 +264,8 @@ data "aws_iam_policy_document" "nat_instance_ec2_assume_role" {
     ]
     principals {
       identifiers = [
-        "ec2.amazonaws.com"]
+        "ec2.amazonaws.com"
+      ]
       type = "Service"
     }
   }
@@ -286,6 +293,11 @@ data "aws_iam_policy_document" "nat_instance_ec2_attach_network_interface" {
 resource "aws_iam_role" "nat_instance_role" {
   name = "${var.nat_instance_iam_prefix}NatGateway"
   assume_role_policy = data.aws_iam_policy_document.nat_instance_ec2_assume_role.json
+  lifecycle {
+    ignore_changes = [
+      assume_role_policy
+    ]
+  }
 }
 
 # Create IAM profile for the EC2 instance
@@ -305,4 +317,9 @@ resource "aws_iam_role_policy" "nat_instance_eni_policy" {
   name_prefix = "${var.nat_instance_iam_prefix}NatGatewayPolicy"
   role = aws_iam_role.nat_instance_role.name
   policy = data.aws_iam_policy_document.nat_instance_ec2_attach_network_interface.json
+  lifecycle {
+    ignore_changes = [
+      policy
+    ]
+  }
 }
