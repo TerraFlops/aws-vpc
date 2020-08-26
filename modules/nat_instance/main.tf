@@ -127,7 +127,10 @@ resource "aws_launch_template" "nat_instance" {
     ]
   }
 
-  name = "${data.aws_subnet.public_subnets[count.index].tags["Name"]}NatGatewayLaunchTemplate"
+  # Annoyingly Terraform seems to be incapable of cretaing new Launch Template versions, and when a change
+  # is made to the launch template it tries to create it before destroying the existing one causing a name
+  # conflict- thus we are forced to use name_prefix instead of name here
+  name_prefix = "${data.aws_subnet.public_subnets[count.index].tags["Name"]}NatGatewayLaunchTemplate"
   description = "NAT instance launch template"
   image_id = data.aws_ami.nat_instance.id
 
