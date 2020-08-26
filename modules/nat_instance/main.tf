@@ -37,7 +37,7 @@ data "aws_ami" "nat_instance" {
   }
   filter {
     name = "name"
-    values = ["amzn2-ami-hvm-*"]
+    values = ["amzn-ami-vpc-nat-2018.03*"]
   }
   filter {
     name = "virtualization-type"
@@ -128,205 +128,26 @@ resource "aws_route" "nat_instance" {
   }
 }
 
-# Create launch template for the EC2 NAT instances
-resource "aws_launch_template" "nat_instance" {
+# Create a NAT instance in each public subnet
+resource "aws_instance" "nat_instance" {
   count = length(var.public_subnet_ids)
-
-  lifecycle {
-    create_before_destroy = false
-    ignore_changes = [
-      name_prefix,
-      image_id
-    ]
+  ami = data.aws_ami.nat_instance.id
+  instance_type = "t3a.nano"
+  network_interface {
+    device_index = 0
+    network_interface_id = flatten([
+      for interface in aws_network_interface.network_interface: flatten([
+        for subnet in data.aws_subnet.public_subnets: interface["id"]
+        if interface["tags"]["AvailabilityZone"] == subnet.availability_zone
+      ])
+    ])[0]
+    security_groups = [
+    var.security_group_id
+  ]
+    subnet_id = data.aws_subnet.public_subnets[count.index].id
   }
-
-  # Annoyingly Terraform seems to be incapable of cretaing new Launch Template versions, and when a change
-  # is made to the launch template it tries to create it before destroying the existing one causing a name
-  # conflict- thus we are forced to use name_prefix instead of name here
-  name_prefix = "${data.aws_subnet.public_subnets[count.index].tags["Name"]}NatGatewayLaunchTemplate"
-  description = "NAT instance launch template"
-  image_id = data.aws_ami.nat_instance.id
-
-  iam_instance_profile {
-    arn = aws_iam_instance_profile.nat_instance_role.arn
-  }
-
-  # Attach network interface we created
-  network_interfaces {
-    associate_public_ip_address = true
-    security_groups = [ var.security_group_id ]
-    delete_on_termination = true
-  }
-
-  # Create launch userdata
-  user_data = base64encode(join("\n", [
-    "#cloud-config",
-    yamlencode({
-      write_files : concat([
-        {
-          path : "/opt/snat/runonce.sh",
-          content : templatefile("${path.module}/snat/runonce.sh", {
-            eni_id = aws_network_interface.network_interface[count.index].id
-          }),
-          permissions : "0755",
-        },
-        {
-          path : "/opt/snat/snat.sh",
-          content : file("${path.module}/snat/snat.sh"),
-          permissions : "0755",
-        },
-        {
-          path : "/etc/systemd/system/snat.service",
-          content : file("${path.module}/snat/snat.service"),
-        },
-      ]),
-      runcmd : [
-        "/opt/snat/runonce.sh"],
-    })
-  ]))
 
   tags = {
-    Name = "NatGatewayLaunchTemplate"
-  }
-}
-
-# ------------------------------------------------------------------------------------------------------------------------
-# Auto-scaling group
-# ------------------------------------------------------------------------------------------------------------------------
-
-# We are going to launch each NAT instance into its own auto-scaling group, this will ensure that it is kept alive if it
-# is unexpectedly terminated
-
-resource "aws_autoscaling_group" "nat_instance" {
-  count = length(var.public_subnet_ids)
-
-  # Name the ASG
-  name = "${data.aws_subnet.public_subnets[count.index].tags["Name"]}NatGatewayAutoScalingGroup"
-
-  # We only ever want a single NAT instance in each subnet
-  desired_capacity = 1
-  min_size = 1
-  max_size = 1
-
-  # Launch a NAT instance in each of the subnets
-  vpc_zone_identifier = [
-    data.aws_subnet.public_subnets[count.index].id
-  ]
-
-  # Tag each instance with an appropriate name
-  tag {
-    key = "Name"
-    value = "${data.aws_subnet.public_subnets[count.index].tags["Name"]}NatGateway"
-    propagate_at_launch = true
-  }
-
-  mixed_instances_policy {
-    # Launch NAT instances as on-demand to ensure we don't have spot instance dying on us unexpectedly
-    instances_distribution {
-      on_demand_base_capacity = 1
-      on_demand_percentage_above_base_capacity = 100
-    }
-
-    # Link to the launch template we created
-    launch_template {
-      launch_template_specification {
-        launch_template_id = aws_launch_template.nat_instance[count.index].id
-        version = "$Latest"
-      }
-      dynamic "override" {
-        # Specify suitable instance types
-        for_each = [
-          "t3a.nano",
-          "t3.nano"
-        ]
-        content {
-          instance_type = override.value
-        }
-      }
-    }
-  }
-
-  lifecycle {
-    create_before_destroy = true
-    ignore_changes = [
-      name,
-      mixed_instances_policy,
-      tag,
-      vpc_zone_identifier
-    ]
-  }
-}
-
-# ------------------------------------------------------------------------------------------------------------------------
-# IAM policy documents
-# ------------------------------------------------------------------------------------------------------------------------
-
-# Create policy document allowing EC2 service to assume the role
-data "aws_iam_policy_document" "nat_instance_ec2_assume_role" {
-  version = "2012-10-17"
-  statement {
-    effect = "Allow"
-    actions = [
-      "sts:AssumeRole"
-    ]
-    principals {
-      identifiers = [
-        "ec2.amazonaws.com"
-      ]
-      type = "Service"
-    }
-  }
-}
-
-# Create policy document allowing EC2 NAT instances to attach network interfaces
-data "aws_iam_policy_document" "nat_instance_ec2_attach_network_interface" {
-  version = "2012-10-17"
-  statement {
-    effect = "Allow"
-    resources = [
-      "*"
-    ]
-    actions = [
-      "ec2:AttachNetworkInterface"
-    ]
-  }
-}
-
-# ------------------------------------------------------------------------------------------------------------------------
-# IAM role and instance profile
-# ------------------------------------------------------------------------------------------------------------------------
-
-# Create IAM role for the NAT instances
-resource "aws_iam_role" "nat_instance_role" {
-  name = "${var.nat_instance_iam_prefix}NatGateway"
-  assume_role_policy = data.aws_iam_policy_document.nat_instance_ec2_assume_role.json
-  lifecycle {
-    ignore_changes = [
-      assume_role_policy
-    ]
-  }
-}
-
-# Create IAM profile for the EC2 instance
-resource "aws_iam_instance_profile" "nat_instance_role" {
-  name = "${var.nat_instance_iam_prefix}NatGatewayIamProfile"
-  role = aws_iam_role.nat_instance_role.name
-}
-
-# Attach SSM managed instance core policy to the role
-resource "aws_iam_role_policy_attachment" "nat_instance_ssm_policy" {
-  policy_arn = "arn:aws:iam::aws:policy/AmazonSSMManagedInstanceCore"
-  role = aws_iam_role.nat_instance_role.name
-}
-
-# Attach policy allowing NAT instance to attach network interfaces
-resource "aws_iam_role_policy" "nat_instance_eni_policy" {
-  name = "${var.nat_instance_iam_prefix}NatGatewayPolicy"
-  role = aws_iam_role.nat_instance_role.name
-  policy = data.aws_iam_policy_document.nat_instance_ec2_attach_network_interface.json
-  lifecycle {
-    ignore_changes = [
-      policy
-    ]
+    Name = "${data.aws_subnet.public_subnets[count.index].tags["Name"]}NatGateway"
   }
 }
