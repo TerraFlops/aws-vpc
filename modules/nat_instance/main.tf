@@ -120,6 +120,12 @@ resource "aws_route" "nat_instance" {
       if interface["tags"]["AvailabilityZone"] == subnet.availability_zone
     ])
   ])[0]
+
+  lifecycle {
+    ignore_changes = [
+      route_table_id
+    ]
+  }
 }
 
 # Create launch template for the EC2 NAT instances
@@ -129,6 +135,7 @@ resource "aws_launch_template" "nat_instance" {
   lifecycle {
     create_before_destroy = false
     ignore_changes = [
+      name_prefix,
       image_id
     ]
   }
@@ -314,7 +321,7 @@ resource "aws_iam_role_policy_attachment" "nat_instance_ssm_policy" {
 
 # Attach policy allowing NAT instance to attach network interfaces
 resource "aws_iam_role_policy" "nat_instance_eni_policy" {
-  name_prefix = "${var.nat_instance_iam_prefix}NatGatewayPolicy"
+  name = "${var.nat_instance_iam_prefix}NatGatewayPolicy"
   role = aws_iam_role.nat_instance_role.name
   policy = data.aws_iam_policy_document.nat_instance_ec2_attach_network_interface.json
   lifecycle {
