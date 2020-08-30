@@ -129,7 +129,7 @@ resource "aws_instance" "nat_gateway" {
   }
   lifecycle {
     ignore_changes = [
-      network_interface
+      ami
     ]
   }
 }
