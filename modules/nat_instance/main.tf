@@ -122,6 +122,11 @@ resource "aws_route" "nat_gateway" {
     for interface in aws_network_interface.network_interface: interface.id
     if interface["tags"]["AvailabilityZone"] == data.aws_subnet.private_subnets[count.index]
   ][0]
+  lifecycle {
+    ignore_changes = [
+      route_table_id
+    ]
+  }
 }
 
 # ------------------------------------------------------------------------------------------------------------------------
