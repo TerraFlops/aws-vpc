@@ -85,12 +85,6 @@ resource "aws_eip" "nat_gateway" {
     Name = "${data.aws_subnet.public_subnets[count.index].tags["Name"]}NatGatewayEip"
     AvailabilityZone = data.aws_subnet.public_subnets[count.index].availability_zone
   }
-  lifecycle {
-    ignore_changes = [
-      network_interface,
-      tags
-    ]
-  }
 }
 
 # Create ENI for the NAT gateways and attach to the Elastic IP we just created
@@ -104,12 +98,6 @@ resource "aws_network_interface" "network_interface" {
     Name = "${data.aws_subnet.public_subnets[count.index].tags["Name"]}NatGateway"
     AvailabilityZone = data.aws_subnet.public_subnets[count.index].availability_zone
   }
-  lifecycle {
-    ignore_changes = [
-      subnet_id,
-      tags
-    ]
-  }
 }
 
 # Create a route in each private subnet back to the appropriate NAT 
@@ -122,11 +110,6 @@ resource "aws_route" "nat_gateway" {
     for interface in aws_network_interface.network_interface: interface.id
     if interface["tags"]["AvailabilityZone"] == data.aws_subnet.private_subnets[count.index]
   ][0]
-  lifecycle {
-    ignore_changes = [
-      route_table_id
-    ]
-  }
 }
 
 # ------------------------------------------------------------------------------------------------------------------------
@@ -146,9 +129,7 @@ resource "aws_instance" "nat_gateway" {
   }
   lifecycle {
     ignore_changes = [
-      network_interface,
-      ami,
-      tags
+      network_interface
     ]
   }
 }
