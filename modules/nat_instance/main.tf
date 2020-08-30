@@ -108,7 +108,7 @@ resource "aws_route" "nat_gateway" {
   # Route to the network interface that is in the same availability zone
   network_interface_id = [
     for interface in aws_network_interface.network_interface: interface.id
-    if interface["tags"]["AvailabilityZone"] == data.aws_subnet.private_subnets[count.index].availability_zone
+    if interface["tags"]["AvailabilityZone"] == data.aws_subnet.private_subnets[count.index]
   ][0]
 }
 
@@ -129,7 +129,8 @@ resource "aws_instance" "nat_gateway" {
   }
   lifecycle {
     ignore_changes = [
-      network_interface
+      network_interface,
+      ami
     ]
   }
 }
