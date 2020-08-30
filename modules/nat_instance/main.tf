@@ -8,20 +8,8 @@ data "aws_subnet" "public_subnets" {
   vpc_id = var.vpc_id
 }
 
-data "aws_subnet" "private_subnets" {
-  count = length(var.private_subnet_ids)
-  id = var.private_subnet_ids[count.index]
-  vpc_id = var.vpc_id
-}
-
-data "aws_route_table" "private_subnets" {
-  count = length(var.private_subnet_ids)
-  vpc_id = var.vpc_id
-  subnet_id = var.private_subnet_ids[count.index]
-}
-
 # ------------------------------------------------------------------------------------------------------------------------
-# NAT gateway AMI settings
+# Retrieve the latest NAT gateway AMI on initial launch- changes will be ignored thereafter
 # ------------------------------------------------------------------------------------------------------------------------
 
 data "aws_ami" "nat_gateway" {
@@ -53,9 +41,7 @@ data "aws_ami" "nat_gateway" {
 resource "aws_security_group_rule" "ingress" {
   security_group_id = var.security_group_id
   type = "ingress"
-  cidr_blocks = [
-    for subnet in data.aws_subnet.private_subnets: subnet.cidr_block
-  ]
+  cidr_blocks = var.private_cidr_blocks
   from_port = 0
   to_port = 0
   protocol = -1
@@ -82,8 +68,8 @@ resource "aws_eip" "nat_gateway" {
   count = length(var.public_subnet_ids)
   network_interface = aws_network_interface.network_interface[count.index].id
   tags = {
-    Name = "${data.aws_subnet.public_subnets[count.index].tags["Name"]}NatGatewayEip"
-    AvailabilityZone = data.aws_subnet.public_subnets[count.index].availability_zone
+    Name = "${var.public_subnet_names[count.index]}NatGatewayEip"
+    AvailabilityZone = var.public_availability_zones[count.index]
   }
 }
 
@@ -91,24 +77,24 @@ resource "aws_eip" "nat_gateway" {
 resource "aws_network_interface" "network_interface" {
   count = length(var.public_subnet_ids)
   security_groups = [var.security_group_id]
-  subnet_id = data.aws_subnet.public_subnets[count.index].id
+  subnet_id = var.public_subnet_ids[count.index]
   source_dest_check = false
   description = "NAT gateway network interface"
   tags = {
-    Name = "${data.aws_subnet.public_subnets[count.index].tags["Name"]}NatGateway"
-    AvailabilityZone = data.aws_subnet.public_subnets[count.index].availability_zone
+    Name = "${var.public_subnet_names[count.index]}NatGateway"
+    AvailabilityZone = var.public_availability_zones[count.index]
   }
 }
 
 # Create a route in each private subnet back to the appropriate NAT 
 resource "aws_route" "nat_gateway" {
   count = length(var.private_subnet_ids)
-  route_table_id = data.aws_route_table.private_subnets[count.index].id
+  route_table_id = var.private_route_table_ids[count.index]
   destination_cidr_block = "0.0.0.0/0"
   # Route to the network interface that is in the same availability zone
   network_interface_id = [
     for interface in aws_network_interface.network_interface: interface.id
-    if interface["tags"]["AvailabilityZone"] == data.aws_subnet.private_subnets[count.index]
+    if interface["tags"]["AvailabilityZone"] == var.private_availability_zones[count.index]
   ][0]
 }
 
@@ -125,7 +111,7 @@ resource "aws_instance" "nat_gateway" {
     network_interface_id = aws_network_interface.network_interface[count.index].id
   }
   tags = {
-    Name = "${data.aws_subnet.public_subnets[count.index].tags["Name"]}NatGateway"
+    Name = "${var.public_subnet_names[count.index]}NatGatewayInstance"
   }
   lifecycle {
     ignore_changes = [

@@ -126,7 +126,12 @@ module "nat_instance" {
   security_group_id = module.security_groups.security_group_ids[var.nat_instance_security_group]
   vpc_id = aws_vpc.vpc.id
   private_subnet_ids = [ for subnet in module.subnets.private_subnets: subnet["id"] ]
+  private_cidr_blocks = [ for subnet in module.subnets.private_subnets: subnet["cidr_block"] ]
+  private_availability_zones = [ for subnet in module.subnets.private_subnets: subnet["availability_zone"] ]
+  private_route_table_ids = [ for route_table in module.subnets.private_route_tables: route_table["id"] ]
   public_subnet_ids = [ for subnet in module.subnets.public_subnets: subnet["id"] ]
+  public_subnet_names = [ for subnet in module.subnets.public_subnets: subnet["tags"]["Name"] ]
+  public_availability_zones = [ for subnet in module.subnets.public_subnets: subnet["availability_zone"] ]
 }
 
 # ------------------------------------------------------------------------------------------------------------------------
