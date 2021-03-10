@@ -52,6 +52,7 @@ module "flow_logs" {
   source = "./modules/flow_logs"
   vpc_id = aws_vpc.vpc.id
   log_group_name = "${local.vpc_name}FlowLogs"
+  flow_log_kms_key_id = var.flow_log_kms_key_id
 }
 
 # ------------------------------------------------------------------------------------------------------------------------

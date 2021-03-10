@@ -207,3 +207,8 @@ variable "security_group_name_append_vpc_description" {
   type = bool
   default = false
 }
+
+variable "flow_log_kms_key_id" {
+  type = string
+  default = null
+}
