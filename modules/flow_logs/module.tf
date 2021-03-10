@@ -41,6 +41,7 @@ resource "aws_iam_role_policy_attachment" "flow_log_iam_role_policy_attachment" 
 
 resource "aws_cloudwatch_log_group" "flow_log_cloudwatch_log_group" {
   name = var.log_group_name
+  retention_in_days = 0
 }
 
 resource "aws_flow_log" "flow_log" {
