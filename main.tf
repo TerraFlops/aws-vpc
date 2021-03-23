@@ -66,6 +66,7 @@ resource "aws_internet_gateway" "internet_gateway" {
   tags = {
     Name = "${aws_vpc.vpc.tags["Name"]}InternetGateway"
     Description = "Internet gateway"
+    AuthorizedVpcIds = aws_vpc.vpc.id
   }
 }
 
