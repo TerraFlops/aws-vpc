@@ -22,3 +22,9 @@ variable "public_subnets" {
   }))
   default = {}
 }
+
+variable "map_public_ip_on_launch" {
+  description = "Boolean flag"
+  type = bool
+  default = true
+}

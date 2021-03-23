@@ -8,7 +8,7 @@ resource "aws_subnet" "public_subnets" {
   vpc_id = var.vpc_id
   cidr_block = each.value.cidr_block
   availability_zone = each.value.availability_zone
-  map_public_ip_on_launch = true
+  map_public_ip_on_launch = var.map_public_ip_on_launch
   tags = {
     Name = join("", [for element in split("_", replace(lower(each.key), "-", "_")): title(element)])
     SubnetType = join("", [for element in split("_", replace(lower(each.value.subnet_type), "-", "_")): title(element)])

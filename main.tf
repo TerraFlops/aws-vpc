@@ -26,6 +26,7 @@ resource "aws_vpc" "vpc" {
 module "subnets" {
   source = "./modules/subnets"
   vpc_id = aws_vpc.vpc.id
+  map_public_ip_on_launch = var.map_public_ip_on_launch
   private_subnets = local.private_subnets
   public_subnets = local.public_subnets
 }

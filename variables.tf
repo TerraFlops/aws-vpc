@@ -212,3 +212,8 @@ variable "flow_log_kms_key_id" {
   type = string
   default = null
 }
+
+variable "map_public_ip_on_launch" {
+  type = bool
+  default = true
+}
