@@ -18,6 +18,6 @@ resource "aws_security_group" "security_groups" {
     Description = var.append_vpc_description == true ? "${each.value} (${data.aws_vpc.vpc.tags["Description"]})" : each.value
   }
   lifecycle {
-    create_before_destroy = false
+    create_before_destroy = true
   }
 }

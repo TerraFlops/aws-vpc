@@ -1,7 +1,7 @@
-.idea/
-.terraform/
-*.tfvars
-*.tfstate
-*.tfstate.*
-.terraform.tfstate.lock.info
-venv/
+**/.idea/
+**/.terraform/
+**/*.tfvars
+**/*.tfstate
+**/*.tfstate.*
+**/.terraform.tfstate.lock.info
+**/venv/
