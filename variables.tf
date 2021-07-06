@@ -11,7 +11,7 @@ variable "name" {
 variable "description" {
   description = "VPC Settings: Free-form text description of the VPC"
   type = string
-  default = "Example VPC"
+  default = ""
 }
 
 variable "tags" {
@@ -111,13 +111,13 @@ variable "subnet_cidr_blocks" {
 variable "internet_gateway_enabled" {
   description = "Boolean flag which when true creates an Internet Gateway resource attached to the VPC"
   type = bool
-  default = false
+  default = true
 }
 
 variable "internet_gateway_subnet_type" {
   description = "Identifier of the subnet which will be routed directly to Internet Gateway"
   type = string
-  default = null
+  default = "public"
 }
 
 # ------------------------------------------------------------------------------------------------------------------------
@@ -139,7 +139,7 @@ variable "nat_instance_image_id" {
 variable "nat_instance_security_group" {
   description = "The security group to attach to NAT instances (if applicable)"
   type = string
-  default = null
+  default = "nat_gateway"
 }
 
 
@@ -156,7 +156,7 @@ variable "nat_gateway_enabled" {
 variable "nat_gateway_security_group" {
   description = "The security group to attach to NAT gateways (if applicable)"
   type = string
-  default = null
+  default = "nat_gateway"
 }
 
 # ------------------------------------------------------------------------------------------------------------------------
