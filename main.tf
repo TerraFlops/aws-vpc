@@ -3,18 +3,18 @@
 # ------------------------------------------------------------------------------------------------------------------------
 
 locals {
-  vpc_name = join("", [for element in split("_", replace(lower(var.name), "-", "_")): title(element)])
+  vpc_name = join("", [for element in split("_", replace(lower(var.name), "-", "_")) : title(element)])
 }
 
 resource "aws_vpc" "vpc" {
-  cidr_block = var.cidr_block
-  enable_dns_hostnames = var.enable_dns_hostnames
-  enable_dns_support = var.enable_dns_support
+  cidr_block                       = var.cidr_block
+  enable_dns_hostnames             = var.enable_dns_hostnames
+  enable_dns_support               = var.enable_dns_support
   assign_generated_ipv6_cidr_block = var.assign_generated_ipv6_cidr_block
 
   # Create tags for the name and description, overriding with user values where supplied
   tags = merge({
-    Name = local.vpc_name
+    Name        = local.vpc_name
     Description = var.description
   }, var.tags)
 }
@@ -24,11 +24,11 @@ resource "aws_vpc" "vpc" {
 # ------------------------------------------------------------------------------------------------------------------------
 
 module "subnets" {
-  source = "./modules/subnets"
-  vpc_id = aws_vpc.vpc.id
+  source                  = "./modules/subnets"
+  vpc_id                  = aws_vpc.vpc.id
   map_public_ip_on_launch = var.map_public_ip_on_launch
-  private_subnets = local.private_subnets
-  public_subnets = local.public_subnets
+  private_subnets         = local.private_subnets
+  public_subnets          = local.public_subnets
 }
 
 # ------------------------------------------------------------------------------------------------------------------------
@@ -38,9 +38,9 @@ module "subnets" {
 resource "aws_default_route_table" "default" {
   default_route_table_id = aws_vpc.vpc.default_route_table_id
   tags = {
-    Name = "Default"
+    Name        = "Default"
     Description = "Default VPC route table"
-    SubnetType = "Default"
+    SubnetType  = "Default"
   }
 }
 
@@ -49,10 +49,10 @@ resource "aws_default_route_table" "default" {
 # ------------------------------------------------------------------------------------------------------------------------
 
 module "flow_logs" {
-  count = var.enable_flow_logs == true ? 1 : 0
-  source = "./modules/flow_logs"
-  vpc_id = aws_vpc.vpc.id
-  log_group_name = "${local.vpc_name}FlowLogs"
+  count               = var.enable_flow_logs == true ? 1 : 0
+  source              = "./modules/flow_logs"
+  vpc_id              = aws_vpc.vpc.id
+  log_group_name      = "${local.vpc_name}FlowLogs"
   flow_log_kms_key_id = var.flow_log_kms_key_id
 }
 
@@ -62,11 +62,11 @@ module "flow_logs" {
 
 resource "aws_internet_gateway" "internet_gateway" {
   # Create internet gateway only if the 'internet_gateway_enable' flag is true
-  count = var.internet_gateway_enabled == true ? 1 : 0
+  count  = var.internet_gateway_enabled == true ? 1 : 0
   vpc_id = aws_vpc.vpc.id
   tags = {
-    Name = "${aws_vpc.vpc.tags["Name"]}InternetGateway"
-    Description = "Internet gateway"
+    Name             = "${aws_vpc.vpc.tags["Name"]}InternetGateway"
+    Description      = "Internet gateway"
     AuthorizedVpcIds = aws_vpc.vpc.id
   }
 }
@@ -75,13 +75,13 @@ resource "aws_internet_gateway" "internet_gateway" {
 resource "aws_route" "route_internet_gateway" {
   # Only create the route if we created the internet gateway above
   for_each = tomap({
-    for id, subnet in module.subnets.public_subnets: id => subnet
+    for id, subnet in module.subnets.public_subnets : id => subnet
     if var.internet_gateway_enabled == true
   })
   # Add the route to all of the public subnet route tables
-  route_table_id = module.subnets.public_route_tables[each.key]["id"]
+  route_table_id         = module.subnets.public_route_tables[each.key]["id"]
   destination_cidr_block = "0.0.0.0/0"
-  gateway_id = aws_internet_gateway.internet_gateway[0].id
+  gateway_id             = aws_internet_gateway.internet_gateway[0].id
 }
 
 # ------------------------------------------------------------------------------------------------------------------------
@@ -89,22 +89,19 @@ resource "aws_route" "route_internet_gateway" {
 # ------------------------------------------------------------------------------------------------------------------------
 
 module "security_groups" {
-  source = "./modules/security_groups"
-  vpc_id = aws_vpc.vpc.id
-  security_groups = var.security_groups
+  source                 = "./modules/security_groups"
+  vpc_id                 = aws_vpc.vpc.id
+  security_groups        = var.security_groups
   append_vpc_description = var.append_vpc_description
 }
 
 module "security_group_rules" {
-  depends_on = [
-    module.security_groups.security_groups
-  ]
-  source = "./modules/security_group_rules"
-  vpc_id = aws_vpc.vpc.id
-  security_group_ids = module.security_groups.security_group_ids
-  security_group_rules = var.security_group_rules
+  source                = "./modules/security_group_rules"
+  vpc_id                = aws_vpc.vpc.id
+  security_group_ids    = module.security_groups.security_group_ids
+  security_group_rules  = var.security_group_rules
   lookup_protocol_names = var.security_group_lookup_protocol_names
-  lookup_cidr_blocks = local.lookup_cidr_blocks
+  lookup_cidr_blocks    = local.lookup_cidr_blocks
 }
 
 # ------------------------------------------------------------------------------------------------------------------------
@@ -116,25 +113,16 @@ module "nat_instance" {
   # fail due to the VPC not having an attached Internet Gateway, or due to routing conflicts
   count = var.nat_instance_enabled == true && var.nat_gateway_enabled == false && var.internet_gateway_enabled == true ? 1 : 0
 
-  depends_on = [
-    module.security_groups.security_groups,
-    module.subnets.private_subnet_ids,
-    module.subnets.private_route_table_ids,
-    module.subnets.public_subnet_ids,
-    module.subnets.public_route_table_ids,
-    aws_internet_gateway.internet_gateway
-  ]
-
-  source = "./modules/nat_instance"
-  security_group_id = module.security_groups.security_group_ids[var.nat_instance_security_group]
-  vpc_id = aws_vpc.vpc.id
-  private_subnet_ids = [ for subnet in module.subnets.private_subnets: subnet["id"] ]
-  private_cidr_blocks = [ for subnet in module.subnets.private_subnets: subnet["cidr_block"] ]
-  private_availability_zones = [ for subnet in module.subnets.private_subnets: subnet["availability_zone"] ]
-  private_route_table_ids = [ for route_table in module.subnets.private_route_tables: route_table["id"] ]
-  public_subnet_ids = [ for subnet in module.subnets.public_subnets: subnet["id"] ]
-  public_subnet_names = [ for subnet in module.subnets.public_subnets: subnet["tags"]["Name"] ]
-  public_availability_zones = [ for subnet in module.subnets.public_subnets: subnet["availability_zone"] ]
+  source                     = "./modules/nat_instance"
+  security_group_id          = module.security_groups.security_group_ids[var.nat_instance_security_group]
+  vpc_id                     = aws_vpc.vpc.id
+  private_subnet_ids         = [for subnet in module.subnets.private_subnets : subnet["id"]]
+  private_cidr_blocks        = [for subnet in module.subnets.private_subnets : subnet["cidr_block"]]
+  private_availability_zones = [for subnet in module.subnets.private_subnets : subnet["availability_zone"]]
+  private_route_table_ids    = [for route_table in module.subnets.private_route_tables : route_table["id"]]
+  public_subnet_ids          = [for subnet in module.subnets.public_subnets : subnet["id"]]
+  public_subnet_names        = [for subnet in module.subnets.public_subnets : subnet["tags"]["Name"]]
+  public_availability_zones  = [for subnet in module.subnets.public_subnets : subnet["availability_zone"]]
 }
 
 # ------------------------------------------------------------------------------------------------------------------------
@@ -146,9 +134,9 @@ module "nat_gateway" {
   # fail due to the VPC not having an attached Internet Gateway, or due to routing conflicts
   count = var.nat_instance_enabled == false && var.nat_gateway_enabled == true && var.internet_gateway_enabled == true ? 1 : 0
 
-  source = "./modules/nat_gateway"
-  vpc_id = aws_vpc.vpc.id
-  private_subnet_ids = [ for subnet in module.subnets.private_subnets: subnet["id"] ]
-  public_subnet_ids = [ for subnet in module.subnets.public_subnets: subnet["id"] ]
-  security_group_id = module.security_groups.security_group_ids[var.nat_gateway_security_group]
+  source             = "./modules/nat_gateway"
+  vpc_id             = aws_vpc.vpc.id
+  private_subnet_ids = [for subnet in module.subnets.private_subnets : subnet["id"]]
+  public_subnet_ids  = [for subnet in module.subnets.public_subnets : subnet["id"]]
+  security_group_id  = module.security_groups.security_group_ids[var.nat_gateway_security_group]
 }
